@@ -1,15 +1,28 @@
 # Contains all algorithms that will be used
 import time
-import heapq
+import heapq            # for priority queues
+from algorithm_publisher_subscriber import *
+
+
 
 # TO DO: need some class to process obstacles or map information
 class Algorithms:
-    def __init__(self,start, goal, obstacles):
+    def __init__(self,start, goal, obstacles, rand_area, expand_dis=0.5, goal_sample_rate=20, max_iter=2000):
         self.path = {} # path that will be appended to, dictionary of {'algorithm type': path}
         self.start = start
         self.goal = goal
         self.obstacle_list = obstacles
         self.boundaries = []                # need to replace with map boundary dimensions or similar
+
+        # RRT search properties
+        self.min_rand = rand_area[0]
+        self.max_rand = rand_area[1]
+        self.expand_dis = expand_dis
+        self.goal_sample_rate = goal_sample_rate
+        self.max_iter = max_iter
+        self.node_list = [self.start]
+
+
 
     def euclid_distance(self,current_position):
         distance = ((current_position[0]-self.goal[0])**2+(current_position[1]-self.goal[1])**2)**.5
@@ -56,7 +69,16 @@ class Algorithms:
         self.path['Astar'] = path_tracker           # store the results of A star search into the dictionary
         # return path_tracker
     def rrt_search(self):
+
+
         pass
 
     def hybrid_aStar(self):  #?
         pass
+
+# Node for RRT
+class Node:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.parent = None
