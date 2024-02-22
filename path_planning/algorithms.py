@@ -7,13 +7,13 @@ from algorithm_publisher_subscriber import *
 
 # TO DO: need some class to process obstacles or map information
 class Algorithms:
-    def __init__(self,start, goal, obstacles, rand_area, expand_dis=0.5, goal_sample_rate=20, max_iter=2000):
+    def __init__(self,start, goal, obstacles,grid, rand_area, expand_dis=0.5, goal_sample_rate=20, max_iter=2000):
         self.path = {} # path that will be appended to, dictionary of {'algorithm type': path}
         self.start = start
         self.goal = goal
         self.obstacle_list = obstacles
         self.boundaries = []                # need to replace with map boundary dimensions or similar
-
+        self.map_grid = grid
         # RRT search properties
         self.min_rand = rand_area[0]
         self.max_rand = rand_area[1]

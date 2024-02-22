@@ -1,5 +1,8 @@
 import rospy
 from gazebo_msgs.msg import ModelStates
+from nav_msgs.srv import GetPlan, GetMap
+from nav_msgs.msg import GridCells, OccupancyGrid, Path
+
              # import everything from algorithms
 def model_states_callback(msg):
     # Find the index of your robot in the list of model names
@@ -44,3 +47,34 @@ def move(position):
 # rospy.init_node('robot_position_listener', anonymous=True)
 # rospy.Subscriber("/gazebo/model_states", ModelStates, model_states_callback)
 # rospy.spin()
+
+
+# create a function for getting a occupancy map
+def request_map():
+    global resolution_cell_per_meter
+    """
+    Requests the map from the map server.
+    :return [OccupancyGrid] The grid if the service call was successful,
+                                                                                                    None in case of error.
+    """
+    # REQUIRED CREDIT
+    rospy.loginfo("Requesting the map")
+    # grid = rospy.ServiceProxy('nav_msgs/GetMap', GetMap)
+    rospy.wait_for_service('/static_map')
+    try:
+        grid = rospy.ServiceProxy('/static_map', GetMap)
+        occuGrid = grid()
+        return(occuGrid.map)
+    except:
+        rospy.loginfo("Failed")
+def map_array(map):
+    data=map.data
+    item_num=0
+    final_array=[]
+    for x in range(0,128):
+        new_y=[]
+        for  item in range(0,128):
+            new_y.append(data[item_num])
+            item_num+=1
+        final_array.append(new_y)
+    return final_array

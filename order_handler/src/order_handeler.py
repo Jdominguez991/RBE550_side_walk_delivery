@@ -40,7 +40,7 @@ from std_msgs.msg import Bool, String
 #create db for the orders
 # cursor.execute("CREATE TABLE if NOT EXISTS order_tbl (orderID TEXT, productID TEXT, pickup_pnt TEXT, end_pnt TEXT)")
 
-# #create db for faortive spots like the pick up locations and the end points
+# #create db for favorite spots like the pick up locations and the end points
 # cursor.execute("CREATE TABLE if NOT EXISTS favorite_spots_tbl (name TEXT, location TEXT)")
 db_file_name="./order.db"
 

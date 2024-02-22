@@ -11,4 +11,9 @@ if __name__ == "__main__":
     rospy.spin()
     start = [robot_position.x, robot_position.y, robot_position.z]
     goal = [2, 0]  # must change to whatever the server is asking for based on next item in the list
-    robot_planner = Algorithms(start, goal, obstacles, rand_area, expand_dis=0.5, goal_sample_rate=20, max_iter=2000)
+    map = request_map()
+    time.sleep(1)
+    grid = map_array(map)
+    robot_planner = Algorithms(start, goal, obstacles, grid, rand_area, expand_dis=0.5, goal_sample_rate=20, max_iter=2000)
+
+
