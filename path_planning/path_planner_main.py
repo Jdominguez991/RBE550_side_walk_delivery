@@ -14,6 +14,9 @@ if __name__ == "__main__":
     map = request_map()
     time.sleep(1)
     grid = map_array(map)
-    robot_planner = Algorithms(start, goal, obstacles, grid, rand_area, expand_dis=0.5, goal_sample_rate=20, max_iter=2000)
+    rand_area = 0
 
+    filename = 'map1.pgm'
+    robot_planner = Algorithms(start, goal,rand_area,filename, expand_dis=0.5, goal_sample_rate=20, max_iter=2000)
+    a_star_path = robot_planner.a_star()
 
