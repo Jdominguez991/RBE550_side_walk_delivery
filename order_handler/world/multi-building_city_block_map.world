@@ -1058,7 +1058,7 @@
           <wrench>0 0 0 0 -0 0</wrench>
         </link>
       </model>
-      <model name='delivery_robot'>
+      <!--<model name='delivery_robot'>
         <pose>-0.001465 0.020362 0.167492 -4e-05 -0 0.066002</pose>
         <scale>1 1 1</scale>
         <link name='back_left_caster'>
@@ -1103,7 +1103,7 @@
           <acceleration>-0.024902 2.00264 -1.04434 -2.36847 -1.30179 -2.90449</acceleration>
           <wrench>-0.377011 30.3199 -15.8113 0 -0 0</wrench>
         </link>
-      </model>
+      </model>-->
       <model name='first_2015_trash_can'>
         <pose>2.59593 -12.2857 0 0 -0 0</pose>
         <scale>1 1 1</scale>
@@ -1401,7 +1401,7 @@
         <projection_type>perspective</projection_type>
       </camera>
     </gui>
-    <model name='delivery_robot'>
+    <!--<model name='delivery_robot'>
       <link name='robot_footprint'>
         <inertial>
           <pose>0.001787 -0 0.000661 0 -0 0</pose>
@@ -2268,7 +2268,7 @@
         <kinematic>0</kinematic>
       </link>
       <pose>-0.474687 0.572718 0 0 -0 0</pose>
-    </model>
+    </model>-->
     <model name='Generic_1_room_house_1'>
       <pose>-21.2646 -3.37904 0 0 -0 0</pose>
       <link name='Door_6'>
@@ -6959,7 +6959,7 @@
       </link>
       <static>1</static>
     </model>
-    <model name='asphalt_plane_0'>
+    <!--<model name='asphalt_plane_0'>
       <static>1</static>
       <link name='link'>
         <collision name='collision'>
@@ -7002,12 +7002,17 @@
         <kinematic>0</kinematic>
       </link>
 <<<<<<< HEAD
+<<<<<<< HEAD
       <pose>0.375543 18.7357 0 0 -0 0</pose>
     </model>
 =======
       <pose>10.375543 18.7357 0 0 -0 0</pose>
     </model>-->
 >>>>>>> main
+=======
+      <pose>10.375543 18.7357 0 0 -0 0</pose>
+    </model>-->
+>>>>>>> 46a074b888de1252ea1070ea1c511fe67254325b
     <model name='unit_box'>
       <pose>30.7793 2.11465 0.5 0 -0 0</pose>
       <link name='link'>
@@ -8549,7 +8554,10 @@
       <pose>-10.3836 -20.0659 0 0 -0 0</pose>
     </model>
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> 46a074b888de1252ea1070ea1c511fe67254325b
 
 
     <actor name="actor_walking">
@@ -8809,6 +8817,9 @@
         </trajectory>
       </script>
     </actor>
+<<<<<<< HEAD
 >>>>>>> main
+=======
+>>>>>>> 46a074b888de1252ea1070ea1c511fe67254325b
   </world>
 </sdf>
