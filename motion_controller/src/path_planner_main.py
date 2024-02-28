@@ -32,9 +32,9 @@ def grab_curr_robot_pose():
 
 def starting_pnt(data):
     global start_location
-    start_location["x"]=data.pose.position.x
-    start_location["y"]=data.pose.position.y
-    quaternion_angle=[data.pose.orientation.x,data.pose.orientation.y,data.pose.orientation.z,data.pose.orientation.w]
+    start_location["x"]=data.pose.pose.position.x
+    start_location["y"]=data.pose.pose.position.y
+    quaternion_angle=[data.pose.pose.orientation.x,data.pose.pose.orientation.y,data.pose.pose.orientation.z,data.pose.pose.orientation.w]
     
     rot = Rotation.from_quat(quaternion_angle)
     start_location["angle"]= rot.as_euler('xyz', degrees=True)
@@ -52,12 +52,32 @@ def end_pnt(data):
 if __name__ == "__main__":
     
     rospy.init_node('path_planner',anonymous = True)
-    rospy.Subscriber('initialpose', PoseStamped, starting_pnt)
+    rospy.Subscriber('initialpose', PoseWithCovarianceStamped, starting_pnt)
     rospy.Subscriber('move_base_simple/goal', PoseStamped, end_pnt)
     
+
+    start = [start_location["x"],start_location["y"],start_location["angle"]]                
+    goal = [2, 0]                                   # currently arbitrary, ust change to whatever the server is asking for based on next item in the list
+
+    print("getting map")
+    grid= request_map()
+
+    print(len(grid[0]))
+    count=0
+    occu_map_array=[]
+    for index in range(0,grid[1]):
+        temp_array=[]
+        for h_index in range(0,grid[2]):
+            temp_array.append(grid[0][count])
+            count+=1
+        occu_map_array.append(temp_array)
+    print(f'Dimension of the occupancy grid array: {len(occu_map_array)}')
     
-    # start = [start_location["x"],start_location["y"],start_location["angle"]]                
-    # goal = [2, 0]                                   # currently arbitrary, ust change to whatever the server is asking for based on next item in the list
+    
+    
+    # rand_area = 0       # for RRT later
+    # path_planner_object = algorithms(start, goal, rand_area, grid, expand_dis=0.5, goal_sample_rate=20, max_iter=2000)
+
     # map = [request_map()]
     # time.sleep(1)
     # grid = map_array(map)

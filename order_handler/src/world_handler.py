@@ -98,7 +98,7 @@ parser.add_argument('--max_spawn_trials', help ='The number of times the sim wil
 args, unknown = parser.parse_known_args()
 vars_dict=vars(args)
 
-rospy.init_node('world_spawner', log_level=rospy.INFO)
+rospy.init_node('world_spawner', log_level=rospy.DEBUG)
 
 #Spawn the world based on the world launch file 
 if vars_dict['spawn_world']:

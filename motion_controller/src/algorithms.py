@@ -7,8 +7,6 @@ from nav_msgs.msg import OccupancyGrid, Path
 from geometry_msgs.msg import PoseStamped
 
 
-# TO DO: need some class to process obstacles or map information
-
 # obstacle interpreter functions
 def read_pgm(filename):
     with open(filename, 'rb') as f:
@@ -45,13 +43,12 @@ def interpret_obstacles(filename, threshold=128):
 
 
 class Algorithms:
-    def __init__(self, start, goal, rand_area, filename, expand_dis=0.5, goal_sample_rate=20, max_iter=2000):
+    def __init__(self, start, goal, width, height, grid, rand_area, expand_dis=0.5, goal_sample_rate=20, max_iter=2000):
         self.path = {}  # path that will be appended to, dictionary of {'algorithm type': path}
         self.start = start
         self.goal = goal
-        self.occupancy_grid = interpret_obstacles(filename)  #
-        # self.boundaries = []  # need to replace with map boundary dimensions or similar
-
+        self.occupancy_grid = grid              #  grid object contains 3 indices, 1st is 1D array, 2nd is       
+       
         # RRT search properties
         self.min_rand = rand_area[0]
         self.max_rand = rand_area[1]
@@ -60,15 +57,16 @@ class Algorithms:
         self.max_iter = max_iter
         self.node_list = [self.start]
 
-        width, height, maxval, data = read_pgm(filename)
-        self.grid_width = width
-        self.grid_height = height
+        # width, height, maxval, data = read_pgm(filename)
+        # print(len(self.occupancy_grid))
+        self.grid_width = len(self.occupancy_grid)
+        self.grid_height = self.grid_width
 
-        # create node for a_star
-        rospy.init_node('a_star_search', anonymous=True)
-        self.map_sub = rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
-        self.path_pub = rospy.Publisher('/path', Path, queue_size=10)  # queue size needs to increase
-        self.map_data = None
+        # # create node for a_star
+        # rospy.init_node('a_star_search', anonymous=True)
+        # self.map_sub = rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
+        # self.path_pub = rospy.Publisher('/path', Path, queue_size=10)  # queue size needs to increase
+        # self.map_data = None
 
     def map_callback(self, msg):
         self.map_data = msg
@@ -135,6 +133,7 @@ class Algorithms:
 
 
 # Node for RRT
+    # in progress
 class Node:
     def __init__(self, x, y):
         self.x = x
