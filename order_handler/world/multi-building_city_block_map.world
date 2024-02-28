@@ -7001,18 +7001,8 @@
         <enable_wind>0</enable_wind>
         <kinematic>0</kinematic>
       </link>
-<<<<<<< HEAD
-<<<<<<< HEAD
-      <pose>0.375543 18.7357 0 0 -0 0</pose>
-    </model>
-=======
       <pose>10.375543 18.7357 0 0 -0 0</pose>
     </model>-->
->>>>>>> main
-=======
-      <pose>10.375543 18.7357 0 0 -0 0</pose>
-    </model>-->
->>>>>>> 46a074b888de1252ea1070ea1c511fe67254325b
     <model name='unit_box'>
       <pose>30.7793 2.11465 0.5 0 -0 0</pose>
       <link name='link'>
@@ -8553,11 +8543,6 @@
       </link>
       <pose>-10.3836 -20.0659 0 0 -0 0</pose>
     </model>
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-=======
->>>>>>> 46a074b888de1252ea1070ea1c511fe67254325b
 
 
     <actor name="actor_walking">
@@ -8817,9 +8802,5 @@
         </trajectory>
       </script>
     </actor>
-<<<<<<< HEAD
->>>>>>> main
-=======
->>>>>>> 46a074b888de1252ea1070ea1c511fe67254325b
   </world>
 </sdf>
