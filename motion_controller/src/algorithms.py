@@ -1,7 +1,8 @@
 # Contains all algorithms that will be used
 import time
 import heapq  # for priority queues
-from algorithm_publisher_subscriber import *
+#from RBE550_side_walk_delivery.motion_controller.src.algo_functions.algorithm_publisher_subscriber import *
+import algo_functions.algorithm_publisher_subscriber as algo_functions
 import rospy
 from nav_msgs.msg import OccupancyGrid, Path
 from geometry_msgs.msg import PoseStamped

@@ -1,5 +1,5 @@
 from algorithms import *
-from algorithm_publisher_subscriber import *
+import algo_functions.algorithm_publisher_subscriber as algo_functions
 from gazebo_msgs.msg import ModelStates
 import rospy
 from scipy.spatial.transform import Rotation
@@ -62,7 +62,7 @@ if __name__ == "__main__":
     # time.sleep(1)
     # grid = map_array(map)
     # rand_area = 0
-
+    grid=algo_functions.request_map()
     # filename = 'map1.pgm'
     # robot_planner = Algorithms(start, goal,rand_area,filename, expand_dis=0.5, goal_sample_rate=20, max_iter=2000)
     # a_star_path = robot_planner.a_star()
