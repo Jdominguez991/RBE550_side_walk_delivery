@@ -13,6 +13,7 @@ from yaml.loader import SafeLoader
 from tf.transformations import quaternion_from_euler
 import argparse
 from pathlib import Path
+import math
 
 def spawn_item(name:str,location,sdf_file:Path,trial_cnts=0):
     """Will spawn the given item into the world
@@ -32,7 +33,7 @@ def spawn_item(name:str,location,sdf_file:Path,trial_cnts=0):
     dispatch_location.position.x=location[0]
     dispatch_location.position.y=location[1]
     dispatch_location.position.z=1
-    quat=quaternion_from_euler(0,0,location[2])
+    quat=quaternion_from_euler(0,0,math.radians(location[2]))
     dispatch_location.orientation=Quaternion(quat[0],quat[1],quat[2],quat[3])
 
     #Grab the sdf information from the file
@@ -94,11 +95,12 @@ parser.add_argument('--world', help ='Which world launch file do you want to use
 parser.add_argument('--spawn_drop_off', help ='Should the drop off locations be spawned', default=True)
 parser.add_argument('--spawn_pick_up', help ='Should the pickup locations be spawned', default=True)
 parser.add_argument('--max_spawn_trials', help ='The number of times the sim will try to spawn the item', default=5)
+parser.add_argument('--node_name', help="define a custom name for the node", default='world_spawner')
  
 args, unknown = parser.parse_known_args()
 vars_dict=vars(args)
 
-rospy.init_node('world_spawner', log_level=rospy.DEBUG)
+rospy.init_node(vars_dict['node_name'], log_level=rospy.DEBUG)
 
 #Spawn the world based on the world launch file 
 if vars_dict['spawn_world']:
