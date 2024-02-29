@@ -60,8 +60,9 @@ if __name__ == "__main__":
     goal = [2, 0]                                   # currently arbitrary, ust change to whatever the server is asking for based on next item in the list
 
     print("getting map")
-    grid= request_map()
+    grid= algo_functions.request_map()
 
+    # transform 1D map data to 2D array
     print(len(grid[0]))
     count=0
     occu_map_array=[]
@@ -72,20 +73,16 @@ if __name__ == "__main__":
             count+=1
         occu_map_array.append(temp_array)
     print(f'Dimension of the occupancy grid array: {len(occu_map_array)}')
-    
-    
-    
-    # rand_area = 0       # for RRT later
-    # path_planner_object = algorithms(start, goal, rand_area, grid, expand_dis=0.5, goal_sample_rate=20, max_iter=2000)
 
-    # map = [request_map()]
-    # time.sleep(1)
-    # grid = map_array(map)
-    # rand_area = 0
-    grid=algo_functions.request_map()
-    # filename = 'map1.pgm'
-    # robot_planner = Algorithms(start, goal,rand_area,filename, expand_dis=0.5, goal_sample_rate=20, max_iter=2000)
-    # a_star_path = robot_planner.a_star()
+    # initialize path planning object
+    dimension = len(occu_map_array)                                                 # occupancy grid is square
+    rand_area = 0                                                                    # for RRT later
+    robot_planner = Algorithms(start,goal,dimension,dimension,occu_map_array)    # create path planning object
+    robot_planner.a_star()                                                       # call a_star method, no expected return
+    print(robot_planner.path['A_star'])                                          # access A_star key to display path
+    
+
+    # grid=algo_functions.request_map()
 
     rospy.spin()
 

@@ -4,7 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b822b9ed-895e-4c24-82b3-2915fbdfa2ea" name="Changes" comment="" />
+    <list default="true" id="b822b9ed-895e-4c24-82b3-2915fbdfa2ea" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/motion_controller/src/algorithms.py" beforeDir="false" afterPath="$PROJECT_DIR$/motion_controller/src/algorithms.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/motion_controller/src/path_planner_main.py" beforeDir="false" afterPath="$PROJECT_DIR$/motion_controller/src/path_planner_main.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -28,7 +33,7 @@
   "keyToString": {
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "model__spawners",
+    "git-widget-placeholder": "path__planner__dev",
     "last_opened_file_path": "/home/user/catkin_ws/src/RBE550_side_walk_delivery"
   }
 }]]></component>
