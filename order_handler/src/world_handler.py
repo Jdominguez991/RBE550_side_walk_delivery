@@ -92,6 +92,7 @@ def make_pickup_loc(name:str,location,color:str):
 parser = argparse.ArgumentParser(description ='Process some integers.')
 parser.add_argument('--spawn_world', help ='Should the file launch the world',type=bool,default=True)
 parser.add_argument('--world', help ='Which world launch file do you want to use', default="world.launch")
+parser.add_argument('--occu_grid',help="Should the occupancy grid be launched", type=bool, default=True)
 parser.add_argument('--spawn_drop_off', help ='Should the drop off locations be spawned', default=True)
 parser.add_argument('--spawn_pick_up', help ='Should the pickup locations be spawned', default=True)
 parser.add_argument('--max_spawn_trials', help ='The number of times the sim will try to spawn the item', default=5)
@@ -113,7 +114,13 @@ if vars_dict['spawn_world']:
     rospy.sleep(10)
 
 
+
 node_launch = roslaunch.scriptapi.ROSLaunch()
+
+if vars_dict['occu_grid']:
+    node=roslaunch.core.Node("map_server", "map_server",args=f"{(Path(__file__).resolve().parents[0]).joinpath("../../maps/map1.yaml")}")
+    node_launch.start()
+    node_launch.launch(node)
 # Open the cfg file and load the file
 with open(f'{os.path.dirname(os.path.abspath(__file__))}/conf.yaml','r') as f:
     data = yaml.load(f, Loader=SafeLoader)
