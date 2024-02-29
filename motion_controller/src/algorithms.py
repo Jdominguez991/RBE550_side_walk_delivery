@@ -26,7 +26,6 @@ class Algorithms:
         self.max_iter = max_iter
         self.node_list = [self.start]
 
-
         # print(len(self.occupancy_grid))
         self.grid_width = width
         self.grid_height = height
@@ -51,8 +50,6 @@ class Algorithms:
                      (position[0], position[1] + 1),
                      (position[0], position[1] - 1)
                      ]
-
-
         return neighbors
 
     def a_star(self):
@@ -74,7 +71,7 @@ class Algorithms:
 
             for n in neighbors:
                 if 0 <= n[0] < self.grid_height and 0 <= n[1] < self.grid_width:                        # if neighbor is within grid bounds continue
-                    if self.occupancy_grid[n[0],n[1]] != 1:                                             # if grid value is not 1, then execute stack
+                    if self.occupancy_grid[n[0],n[1]] == 0:                                             # 1 is obstacle, 0 is free space, -1 undefined
                         cost = self.euclid_distance(n,self.goal) + self.euclid_distance(current_coord,n)      # equation is g + h, euclid plus distance to neighbor
                         heapq.heappush(priority_queue, (cost, n))
             count = +1
@@ -93,7 +90,7 @@ class Algorithms:
 
 
 # Node for RRT
-    # in progress
+    # in progress, not for a_star
 class Node:
     def __init__(self, x, y):
         self.x = x
