@@ -29,10 +29,10 @@ def move(position):
     rospy.init_node('robot_mover', anonymous=True)
 
     # Create publisher
-    pub = rospy.Publisher('/gazebo/set_model_state', ModelState, queue_size=10)
+    pub = rospy.Publisher('/gazebo/set_model_state', ModelStates, queue_size=10)
 
     # Create message
-    state_msg = ModelState()
+    state_msg = ModelStates()
     state_msg.model_name = "your_robot_name"
     state_msg.pose.position = position
     state_msg.pose.orientation.x = 0.0
@@ -64,7 +64,7 @@ def request_map():
     try:
         grid = rospy.ServiceProxy('/static_map', GetMap)
         occuGrid = grid()
-        return(occuGrid.map)
+        return([occuGrid.map.data,occuGrid.map.info.width,occuGrid.map.info.height])
     except:
         rospy.loginfo("Failed")
 def map_array(map):
