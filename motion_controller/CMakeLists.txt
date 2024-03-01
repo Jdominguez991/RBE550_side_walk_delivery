@@ -160,7 +160,6 @@ include_directories(
 # Mark executable scripts (Python etc.) for installation
 # in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
-   src/algorithms.py
    src/path_planner_main.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

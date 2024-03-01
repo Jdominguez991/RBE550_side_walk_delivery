@@ -118,7 +118,7 @@ if vars_dict['spawn_world']:
 node_launch = roslaunch.scriptapi.ROSLaunch()
 
 if vars_dict['occu_grid']:
-    node=roslaunch.core.Node("map_server", "map_server",args=f"{(Path(__file__).resolve().parents[0]).joinpath("../../maps/map1.yaml")}")
+    node=roslaunch.core.Node("map_server", "map_server",args=f"{(Path(__file__).resolve().parents[0]).joinpath('../../maps/map1.yaml')}")
     node_launch.start()
     node_launch.launch(node)
 # Open the cfg file and load the file

@@ -4,3 +4,11 @@ Instructions used to create map
 3. roslaunch warehouse_robot_simulation slam_gmapping.launch
 4. roslaunch warehouse_robot_simulation rviz_robot_check.launch
 5. rosrun teleop_twist_keyboard teleop_twist_keyboard.py
+
+
+instructions for launching map and path planning tests
+1. start roscore
+2. launch world
+    source ../devel/setup.bash
+    rosrun order_handler world_handler.py 
+3. launch rviz in separate terminal

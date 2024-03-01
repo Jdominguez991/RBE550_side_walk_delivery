@@ -64,7 +64,7 @@ def request_map():
     try:
         grid = rospy.ServiceProxy('/static_map', GetMap)
         occuGrid = grid()
-        return([occuGrid.map.data,occuGrid.map.info.width,occuGrid.map.info.height,occuGrid.map.info.resolution])
+        return([occuGrid.map.data,occuGrid.map.info.width,occuGrid.map.info.height])
     except:
         rospy.loginfo("Failed")
 def map_array(map):
