@@ -6,6 +6,7 @@ from scipy.spatial.transform import Rotation
 from gazebo_msgs.srv import GetModelStateRequest, GetModelState,GetModelPropertiesResponse
 from geometry_msgs.msg import Point, Pose, PoseStamped, PoseWithCovarianceStamped, Quaternion
 from nav_msgs.msg import GridCells
+import numpy 
 
 start_location={"x":0,"y":0,"angle":0}
 end_location={"x":0,"y":0,"angle":0}
@@ -76,14 +77,49 @@ if __name__ == "__main__":
             count+=1
         occu_map_array.append(temp_array)
     print(f'Dimension of the occupancy grid array: {len(occu_map_array)}')
-    
+
+    arr = numpy.array(occu_map_array)
+    rotated_array=numpy.rot90(arr)
+    rotated_array=numpy.flip(rotated_array,0)
     rate = rospy.Rate(15)
-    # while(given_coor[0]==0 or given_coor[1]==0):
+
+
+    # print(arr)
+    # path_array=[]
+    # for num_row,value in enumerate(rotated_array):
+    #     for num_col,col_value in enumerate(value):
+    #         if not col_value == -1 and not col_value==0:
+    #             #Display points that it has visited
+    #             print(num_col, num_row, col_value)
+    #             highlight=Point()
+    #             highlight.x=(num_row-1000)*.05+.025         # translate from grid space coordinate to world space coordinate
+    #             highlight.y=(num_col-1000)*.05+.025
+    #             highlight.z=0
+    #             path_array.append(highlight)
+
+    #             grid_cells_msg = GridCells()
+    #             grid_cells_msg.cell_width = grid[3]
+    #             grid_cells_msg.cell_height = grid[3]
+    #             grid_cells_msg.cells = path_array
+    #             grid_cells_msg.header.frame_id = "map"
+    #             cSpacePub.publish(grid_cells_msg)
+    
+    # for w in range(1,5):
+    #     cSpacePub.publish(grid_cells_msg)
     #     rate.sleep()
+
+    
+
+    rate = rospy.Rate(15)
+    while(given_coor[0]==0 or given_coor[1]==0):
+        rate.sleep()
 
     start = [start_location["x"],start_location["y"]]                
     goal = [end_location["x"],end_location["y"]]                                   # currently arbitrary, ust change to whatever the server is asking for based on next item in the list
     
+    # start=[0,0]
+    # goal=[50,50]
+
     start_end_pnt=[]
     highlight=Point()
     highlight.x=(start[0])*.05+.025         # translate from grid space coordinate to world space coordinate
@@ -104,13 +140,10 @@ if __name__ == "__main__":
     grid_cells_msg.header.frame_id = "map"
     start_end_pntPub.publish(grid_cells_msg)
 
-
-    start=[0,0]
-    goal=[20,0]
     # initialize path planning object
-    dimension = len(occu_map_array)                                                 # occupancy grid is square
+    dimension = len(arr)                                                 # occupancy grid is square
     rand_area = [1,2]                                                              # for RRT later
-    robot_planner = algorithms.Algorithms(start,goal,dimension,dimension,occu_map_array, rand_area)    # create path planning object
+    robot_planner = algorithms.Algorithms(start,goal,dimension,dimension,list(rotated_array), rand_area)    # create path planning object
     robot_planner.a_star()                                                       # call a_star method, no expected return
     print(f"This is the A_star path: {robot_planner.path['A_star']}")                                          # access A_star key to display path
     
@@ -119,8 +152,8 @@ if __name__ == "__main__":
         print(value)
         #Display points that it has visited
         highlight=Point()
-        highlight.x=(value[0]-992)*.05+.025         # translate from grid space coordinate to world space coordinate
-        highlight.y=(value[1]-992)*.05+.025
+        highlight.x=(value[0]-1000)*.05+.025         # translate from grid space coordinate to world space coordinate
+        highlight.y=(value[1]-1000)*.05+.025
         highlight.z=0
         path_array.append(highlight)
 
@@ -130,6 +163,10 @@ if __name__ == "__main__":
         grid_cells_msg.cells = path_array
         grid_cells_msg.header.frame_id = "map"
         cSpacePub.publish(grid_cells_msg)
+    
+    for w in range(1,5):
+        cSpacePub.publish(grid_cells_msg)
+        rate.sleep()
 
     rospy.spin()
 
