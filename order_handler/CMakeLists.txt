@@ -189,6 +189,9 @@ catkin_install_python(PROGRAMS
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 install(FILES
   launch/world.launch
+  launch/robot_description.launch
+  launch/robot_spawner.launch
+  launch/amcl.launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 

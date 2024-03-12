@@ -1,0 +1,6 @@
+[submodule "ira_laser_tools"]
+	path = ira_laser_tools
+	url = https://github.com/iralabdisco/ira_laser_tools.git
+[submodule "pointcloud_to_lasercan"]
+	path = pointcloud_to_lasercan
+	url = https://github.com/ros-perception/pointcloud_to_laserscan.git

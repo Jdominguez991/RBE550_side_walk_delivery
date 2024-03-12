@@ -5,3 +5,5 @@ Some python applications are required in order to use the sqlite db as well as u
 ```
 bash grab_programs.sh 
 ```
+
+need to install tf2_sensor_msgs sudo apt install ros-<distro>-tf2-sensor-msgs

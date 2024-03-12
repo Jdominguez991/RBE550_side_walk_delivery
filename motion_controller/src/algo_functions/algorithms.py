@@ -15,11 +15,11 @@ class Algorithms:
     def __init__(self, start, goal, width, height, grid, rand_area, expand_dis=0.5, goal_sample_rate=20, max_iter=2000):
         self.path = {}  # path that will be appended to, dictionary of {'algorithm type': path}
         self.start = start
-        self.start[0]+=992
-        self.start[1]+=992
+        self.start[0]+=1000
+        self.start[1]+=1000
         self.goal = goal
-        self.goal[0]+=992
-        self.goal[1]+=992
+        self.goal[0]+=1000
+        self.goal[1]+=1000
         self.occupancy_grid = grid              #  grid object contains 3 indices, 1st is 1D array, 2nd is       
         
         # RRT search properties
