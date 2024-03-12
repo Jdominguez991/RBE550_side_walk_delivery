@@ -100,9 +100,22 @@ class Algorithms:
         # we have two options, either create a script that will divide the map into different square regions, the middle will serve as checkpoint
         # or we just manually assign the check points
 
+        # for loop row          # nested for loop to identify a square region in map
+            # for loop column
+            # find center, append to self.checkpoint_list       
+
+
         # in the orientation where east west is parallel to the road, north is side with buildings (using xy coordinates)
         # southwast corner center building = [218, -1]      # these are rviz coordinates 
         # southeast corner center building = [-253,7]
+        
+        pass
+
+    def checkpoint_order(self):
+        # checkpoint_finder
+        # for loop
+            # priority queue heappush checkpoints based on euclidean distance to goal
+        # return a queue for astar function to use
         
         pass
     def rrt_search(self):
