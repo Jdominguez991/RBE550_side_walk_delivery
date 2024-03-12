@@ -45,7 +45,7 @@ class Algorithms:
     def find_neighbors(self, position):
         occupancy_values = {}
         # neighbor spacing, increase to increase algorithm step size
-        step_size = 5
+        step_size = 10
         # this is currently (row,column) notation, not x and y
         neighbors = [[position[0] + step_size, position[1]],
                      [position[0] - step_size, position[1]],
@@ -95,6 +95,16 @@ class Algorithms:
         self.path['A_star'] = path_tracker  # store the results of A star search into the dictionary
         # return path_tracker
 
+
+    def checkpoint_finder(self):
+        # we have two options, either create a script that will divide the map into different square regions, the middle will serve as checkpoint
+        # or we just manually assign the check points
+
+        # in the orientation where east west is parallel to the road, north is side with buildings (using xy coordinates)
+        # southwast corner center building = [218, -1]      # these are rviz coordinates 
+        # southeast corner center building = [-253,7]
+        
+        pass
     def rrt_search(self):
 
         pass

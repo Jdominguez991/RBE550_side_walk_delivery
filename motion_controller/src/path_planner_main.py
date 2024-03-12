@@ -42,7 +42,7 @@ def starting_pnt(data):
     rot = Rotation.from_quat(quaternion_angle)
     start_location["angle"]= rot.as_euler('xyz', degrees=True)
     # print(start_location)
-    rospy.loginfo(f"start cor:{start_location}")
+    rospy.loginfo(f"start coordinates:{start_location}")
     given_coor[0]=1
 def end_pnt(data):
     global start_location, given_coor
@@ -52,7 +52,7 @@ def end_pnt(data):
     
     rot = Rotation.from_quat(quaternion_angle)
     end_location["angle"]= rot.as_euler('xyz', degrees=True)
-    rospy.loginfo(f"end cor:{end_location}")
+    rospy.loginfo(f"end coordinates:{end_location}")
     given_coor[1]=1
     
 if __name__ == "__main__":
