@@ -8,7 +8,9 @@ Instructions used to create map
 
 instructions for launching map and path planning tests
 1. start roscore
-2. launch world
+2. start map server
+    rosrun map_server map_server /home/user/catkin_ws/src/RBE550_side_walk_delivery/maps/map1.yaml
+3. launch world
     source ../devel/setup.bash
     rosrun order_handler world_handler.py 
-3. launch rviz in separate terminal
+4. launch rviz in separate terminal

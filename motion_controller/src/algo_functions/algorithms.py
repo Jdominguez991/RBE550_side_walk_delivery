@@ -44,15 +44,17 @@ class Algorithms:
 
     def find_neighbors(self, position):
         occupancy_values = {}
+        # neighbor spacing, increase to increase algorithm step size
+        step_size = 5
         # this is currently (row,column) notation, not x and y
-        neighbors = [[position[0] + 1, position[1]],
-                     [position[0] - 1, position[1]],
-                     [position[0] + 1, position[1] + 1],
-                     [position[0] + 1, position[1] - 1],
-                     [position[0] - 1, position[1] + 1],
-                     [position[0] - 1, position[1] - 1],
-                     [position[0], position[1] + 1],
-                     [position[0], position[1] - 1]
+        neighbors = [[position[0] + step_size, position[1]],
+                     [position[0] - step_size, position[1]],
+                     [position[0] + step_size, position[1] + step_size],
+                     [position[0] + step_size, position[1] - step_size],
+                     [position[0] - step_size, position[1] + step_size],
+                     [position[0] - step_size, position[1] - step_size],
+                     [position[0], position[1] + step_size],
+                     [position[0], position[1] - step_size]
                      ]
         rospy.logdebug(print(f'here are the neighbors: {neighbors}'))
         return neighbors
