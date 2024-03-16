@@ -6,8 +6,8 @@ import algo_functions.algorithm_publisher_subscriber as algo_functions
 import rospy
 from nav_msgs.msg import OccupancyGrid, Path
 from geometry_msgs.msg import PoseStamped
-
-
+from collections import deque
+import queue
 # obstacle interpreter functions
 
 
@@ -20,7 +20,8 @@ class Algorithms:
         self.goal = goal
         self.goal[0]+=1000
         self.goal[1]+=1000
-        self.occupancy_grid = grid              #  grid object contains 3 indices, 1st is 1D array, 2nd is       
+        self.occupancy_grid = grid              #  grid object contains 3 indices, 1st is 1D array, 2nd is
+        self.accuracy_radius = 20       # specify how close to the target the planner should get       
         
         # RRT search properties
         self.min_rand = rand_area[0]
@@ -34,6 +35,13 @@ class Algorithms:
         self.grid_width = width
         self.grid_height = height
 
+        # checkpoint parameters
+        self.checkpoint_list = queue.LifoQueue()              # manual editing for now
+        test_point = [1241,1015]
+        
+       
+        self.checkpoint_list.put(self.goal) # first push goal onto stack
+        self.checkpoint_list.put(test_point)       
 
     def map_callback(self, msg):
         self.map_data = msg
@@ -45,7 +53,7 @@ class Algorithms:
     def find_neighbors(self, position):
         occupancy_values = {}
         # neighbor spacing, increase to increase algorithm step size
-        step_size = 10
+        step_size = 5
         # this is currently (row,column) notation, not x and y
         neighbors = [[position[0] + step_size, position[1]],
                      [position[0] - step_size, position[1]],
@@ -68,6 +76,7 @@ class Algorithms:
         path_tracker = []
         start_time = time.time()
         count = 0                                       # iteration counter for limit setting
+        checkpoint = self.checkpoint_list.get()           # set first checkpoint
         while priority_queue:
             rospy.logdebug(f"The current priority queue {priority_queue}")                              # is you set ROS to debug, then it prints
             current_distance, current_coord = heapq.heappop(priority_queue)
@@ -77,21 +86,31 @@ class Algorithms:
                 continue
             # visited.add(current_coord)
             visited.append(current_coord)
-            if current_coord == self.goal:
+            # if current_coord == self.goal:
+            #     print('A star goal reached')
+            #     break
+
+            if self.euclid_distance(current_coord,self.goal) <= 10:            # less exact target for goal
                 print('A star goal reached')
                 break
             neighbors = self.find_neighbors(current_coord)
+            
+
+            if self.euclid_distance(current_coord,checkpoint) <= 10:       # if planner reaches checkpoint, pop next checkpoint 
+                checkpoint = self.checkpoint_list.get()
 
             for n in neighbors:
                 # maybe include boundary check?
                 print(self.occupancy_grid[n[0]][n[1]])        # to check occupancy values
                 if self.occupancy_grid[n[0]][n[1]] == 0:                                             # 1 is obstacle, 0 is free space, -1 undefined
-                    cost = self.euclid_distance(n,self.goal) + self.euclid_distance(current_coord,n)      # equation is g + h, euclid plus distance to neighbor
+                    # cost = self.euclid_distance(n,self.goal) + self.euclid_distance(current_coord,n)     # astar equation with goal consideration
+                    cost = self.euclid_distance(n,checkpoint) + self.euclid_distance(current_coord,n)      # a* equation with checkpoints
                     heapq.heappush(priority_queue, (cost, n))
             count = +1
         end_time = time.time()
         total_time = end_time - start_time
         print(f'A star took: {total_time}')
+        rospy.logdebug(f'Is stack empty? {self.checkpoint_list.empty()}')
         self.path['A_star'] = path_tracker  # store the results of A star search into the dictionary
         # return path_tracker
 
@@ -102,12 +121,12 @@ class Algorithms:
 
         # for loop row          # nested for loop to identify a square region in map
             # for loop column
-            # find center, append to self.checkpoint_list       
+            # find center, push to self.checkpoint_list       
 
 
         # in the orientation where east west is parallel to the road, north is side with buildings (using xy coordinates)
-        # southwast corner center building = [218, -1]      # these are rviz coordinates 
-        # southeast corner center building = [-253,7]
+        # southwest corner center building = [1241 1015]      # these are planner coordinates
+        
         
         pass
 
