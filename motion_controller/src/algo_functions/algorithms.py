@@ -38,7 +38,7 @@ class Algorithms:
         # checkpoint parameters
         self.checkpoint_list = queue.LifoQueue()              # manual editing for now
         test_point = [1241,1015]
-        self.building_checkpoints =[]       # create list of building checkpoints
+        self.building_checkpoint_graph =[]       # create list of building checkpoints
         self.inside_checkpoints = []        # create list of indoors checkpoints
        
         self.checkpoint_list.put(self.goal) # first push goal onto stack
@@ -136,7 +136,7 @@ class Algorithms:
             # coord = [721, 994]         
 
             # building-building nodes
-            # warehouse door facing the street
+            # warehouse building door facing the street
             # coord = [1450,989]
             # center building outside door facing the street
             # coord = [995,989]
@@ -146,12 +146,20 @@ class Algorithms:
             # coord = [750,714]
             # rightmost building, outside door facing road
             # coord = [581,989]
-            self.building_checkpoints = [[1450,989],
+            building_checkpoints = [[1450,989],
                                          [995,989],
                                          [1264,897],
                                          [750,714],
                                          [581,989]]
-                                         
+            # this graph represents all building nodes and corner nodes, may be expanded later
+            self.building_checkpoint_graph = {[1450,989]: [[1241,1015]],
+                                              [995,989]: [[1241,1015],[721,994]],
+                                              [1264,897]: [[1241,1015]],
+                                              [750,714]: [[721,994]],
+                                              [581,989]: [[721,994]],
+                                              [1241,1015]: [[1450,989],[995,989],[1264,897]],
+                                              [721,994]: [[750,714],[581,989]]}
+                              
 
             # inside building nodes
             # center building inside hallway of door facing street
@@ -159,7 +167,7 @@ class Algorithms:
             # center building western door inside hallway
             # coord = [1224, 897]
 
-        pass
+    
 
     def checkpoint_order(self):
         '''
@@ -169,10 +177,31 @@ class Algorithms:
         # for loop
             # priority queue heappush checkpoints based on euclidean distance to goal
         # return a queue for astar function to use
-
-
+        # iterate through all building nodes to find the distance from start node
+        node_costs = {}
+        for key,coordinates in self.building_checkpoint_graph.items():
+            node_costs[coordinates] = self.euclid_distance(self.start,coordinates)
+        # find nearest checkpoint
+        min_distance = min(node_costs.values())
+        start_node = []
+        for key,value in node_costs.items():
+            if value == min_distance:
+                start_node = key
         
-        pass
+        list_of_checkpoints = []
+        current_node = start_node
+        # search the graph for the next node to get to goal
+        if len(self.building_checkpoint_graph[current_node]) == 1:        # if there is only one value, just add it to list automatically
+            list_of_checkpoints.append(self.building_checkpoint_graph[current_node])
+        else:
+            for value in self.building_checkpoint_graph[current_node]:
+                self.euclid_distance(current_node,value)
+            
+
+
+         # self.checkpoint_list.put(test_point)  # stack other checkpoints on top of goal  
+        
+       
     def rrt_search(self):
 
         pass
