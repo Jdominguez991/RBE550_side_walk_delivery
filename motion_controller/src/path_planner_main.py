@@ -145,11 +145,12 @@ if __name__ == "__main__":
     rand_area = [1,2]                                                              # for RRT later
     robot_planner = algorithms.Algorithms(start,goal,dimension,dimension,list(rotated_array), rand_area)    # create path planning object
     robot_planner.a_star()                                                       # call a_star method, no expected return
-    print(f"This is the A_star path: {robot_planner.path['A_star']}")                                          # access A_star key to display path
+    # print(f"This is the A_star path: {robot_planner.path['A_star']}")                           # access A_star key to display path
     
     path_array=[]
+    print('Sending A* to rviz')
     for value in robot_planner.path['A_star']:
-        print(value)
+        print(value)                        # print path
         #Display points that it has visited
         highlight=Point()
         highlight.x=(value[0]-1000)*.05+.025         # translate from grid space coordinate to world space coordinate

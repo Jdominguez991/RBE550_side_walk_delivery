@@ -38,10 +38,11 @@ class Algorithms:
         # checkpoint parameters
         self.checkpoint_list = queue.LifoQueue()              # manual editing for now
         test_point = [1241,1015]
-        
+        self.building_checkpoints =[]       # create list of building checkpoints
+        self.inside_checkpoints = []        # create list of indoors checkpoints
        
         self.checkpoint_list.put(self.goal) # first push goal onto stack
-        self.checkpoint_list.put(test_point)       
+        # self.checkpoint_list.put(test_point)  # stack other checkpoints on top of goal     
 
     def map_callback(self, msg):
         self.map_data = msg
@@ -109,7 +110,7 @@ class Algorithms:
             count = +1
         end_time = time.time()
         total_time = end_time - start_time
-        print(f'A star took: {total_time}')
+        print(f'A star took: {total_time} seconds')
         rospy.logdebug(f'Is stack empty? {self.checkpoint_list.empty()}')
         self.path['A_star'] = path_tracker  # store the results of A star search into the dictionary
         # return path_tracker
@@ -123,18 +124,53 @@ class Algorithms:
             # for loop column
             # find center, push to self.checkpoint_list       
 
+        # we will have two hiearchies, first is building to building nodes, after that the 2nd stack will be inside building nodes
+        
+            
 
-        # in the orientation where east west is parallel to the road, north is side with buildings (using xy coordinates)
-        # southwest corner center building = [1241 1015]      # these are planner coordinates
-        
-        
+            # orienation: east-west is parallel to the road, north is side with buildings (using xy coordinates)
+            # alley way:
+            # southwest corner center building 
+            # coord = [1241 1015]      # these are coordinates from ROS pose messages
+            # southeast corner center building 
+            # coord = [721, 994]         
+
+            # building-building nodes
+            # warehouse door facing the street
+            # coord = [1450,989]
+            # center building outside door facing the street
+            # coord = [995,989]
+            # center building outside western door
+            # coord = [1264,897]
+            # center building outside eastern door
+            # coord = [750,714]
+            # rightmost building, outside door facing road
+            # coord = [581,989]
+            self.building_checkpoints = [[1450,989],
+                                         [995,989],
+                                         [1264,897],
+                                         [750,714],
+                                         [581,989]]
+                                         
+
+            # inside building nodes
+            # center building inside hallway of door facing street
+            # coord = [993,935]
+            # center building western door inside hallway
+            # coord = [1224, 897]
+
         pass
 
     def checkpoint_order(self):
-        # checkpoint_finder
+        '''
+        implement a mini-a* search across the building nodes to determine searching order with step size of 5 or something
+        return checkpoint stack which will be this: [building_checkpoints, indoor_checkpoints]
+        '''
         # for loop
             # priority queue heappush checkpoints based on euclidean distance to goal
         # return a queue for astar function to use
+
+
         
         pass
     def rrt_search(self):
@@ -148,6 +184,7 @@ class Algorithms:
 # Node for RRT
     # in progress, not for a_star
 class Node:
+
     def __init__(self, x, y):
         self.x = x
         self.y = y
