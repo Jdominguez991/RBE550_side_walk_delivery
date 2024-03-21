@@ -167,12 +167,18 @@ class Algorithms:
             # center building western door inside hallway
             # coord = [1224, 897]
 
-    
+    def min_key_finder(self,dict):
+        min_distance = min(dict.values())
+        for key,value in dict.items():
+            if value == min_distance:
+                return key
 
-    def checkpoint_order(self):
+    def checkpoint_order(self,checkpoint_dict):             
         '''
         implement a mini-a* search across the building nodes to determine searching order with step size of 5 or something
         return checkpoint stack which will be this: [building_checkpoints, indoor_checkpoints]
+
+        actually maybe it would be better to just have one big graph
         '''
         # for loop
             # priority queue heappush checkpoints based on euclidean distance to goal
@@ -182,24 +188,30 @@ class Algorithms:
         for key,coordinates in self.building_checkpoint_graph.items():
             node_costs[coordinates] = self.euclid_distance(self.start,coordinates)
         # find nearest checkpoint
-        min_distance = min(node_costs.values())
-        start_node = []
-        for key,value in node_costs.items():
-            if value == min_distance:
-                start_node = key
-        
+        start_node = self.min_key_finder(node_costs)
         list_of_checkpoints = []
         current_node = start_node
+
         # search the graph for the next node to get to goal
         if len(self.building_checkpoint_graph[current_node]) == 1:        # if there is only one value, just add it to list automatically
-            list_of_checkpoints.append(self.building_checkpoint_graph[current_node])
+            list_of_checkpoints.append(self.building_checkpoint_graph[current_node])        # this list will be used to create the stack
         else:
-            for value in self.building_checkpoint_graph[current_node]:
-                self.euclid_distance(current_node,value)
+            next_node_costs = {}
+            for node in self.building_checkpoint_graph[current_node]:
+                curr_to_next = self.euclid_distance(current_node,node)
+                next_to_goal = self.euclid_distance(node,self.goal)
+                next_node_costs[node] = (curr_to_next+next_to_goal)        # calculate the cost to get to next node
+            next_node = self.min_key_finder(next_node_costs)                                # find lowest cost node
+            list_of_checkpoints.append(next_node) 
             
 
+        # reverse the list and stack nodes into checkpoint queue
+            
+        list_of_checkpoints.sort(None,True)
+        for checkpt in list_of_checkpoints:
+            self.checkpoint_list.put(checkpt)
 
-         # self.checkpoint_list.put(test_point)  # stack other checkpoints on top of goal  
+        # now implmement for the 
         
        
     def rrt_search(self):
