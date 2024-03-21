@@ -48,10 +48,10 @@ index=0
 robots=[None] #for each robot add another None item in the array
 status_functions=[]
 robot_status=[]
-columns_in_db=['orderID','productID','num_items','robot_assigned', 'pickup_pnt', 'end_pnt']
+columns_in_db=['orderID','productID','num_items_r','num_items_g','num_items_b','robot_assigned', 'pickup_pnt', 'end_pnt']
 order_data={"start_data":None, "end_data":None, "vld_start":False, "vld_end":False,"vld_text_input":False}
 resolution_cell_per_meter=1
-def initilize_ros_node():
+def initialize_ros_node():
     global status_functions
     global robot_status
     # Initialize the node and call it "path_planner"
@@ -148,6 +148,7 @@ def view_orders():
     for row in rows:
         tree.insert("", tk.END, values=row)        
     con1.close()
+
 def view_locations():
     global db_file_name
     print("view funct_locations")
@@ -160,13 +161,17 @@ def view_locations():
     for row in rows:
         location_tree.insert("", tk.END, values=row)        
     con1.close()
+
 def upload_data():
     global index, db_file_name, order_data
     con1 = sqlite3.connect(db_file_name)
     print(con1.total_changes)
     print("uploading data")
     cur1 = con1.cursor()
-    cur1.execute(f"INSERT INTO order_tbl VALUES ('{entry1.get()}#{index}', '{entry2.get()}#{index}', '{entry3.get()}', 'NOT ASSIGNED', '({order_data['start_data'][1]},{order_data['start_data'][2]})','({order_data['end_data'][1]},{order_data['end_data'][2]})')")
+    y=entry1.get()
+    w=entry2.get()
+    q=entry3.get()
+    cur1.execute(f"INSERT INTO order_tbl VALUES ('{name_item_entry.get()}#{index}', '{name_item_entry.get()}#{index}', '{entry1.get()}','{entry2.get()}','{entry3.get()}', 'NOT ASSIGNED', '({order_data['start_data'][1]},{order_data['start_data'][2]})','({order_data['end_data'][1]},{order_data['end_data'][2]})')")
     index+=1
     con1.commit()
     con1.close()
@@ -284,25 +289,18 @@ def send_data(start_pnt,end_pnt, robot_num):
 # def tkinter_window():
 #     window.mainloop()
 connect()
-initilize_ros_node() 
+initialize_ros_node() 
 window = tk.Tk()
 position_frame=tk.Frame(window)
 rviz_select_frame=tk.Frame(window)
 order_name = tk.Label(window, text = "Current orders")
 order_name.pack()
-tree = ttk.Treeview(window, column=("c1", "c2", "c3","c4","c5","c6"), show='headings')
-tree.column("#1", anchor=tk.CENTER)
-tree.heading("#1", text="Order ID")
-tree.column("#2", anchor=tk.CENTER)
-tree.heading("#2", text="Product ID")
-tree.column("#3", anchor=tk.CENTER)
-tree.heading("#3", text="Num items of product")
-tree.column("#4", anchor=tk.CENTER)
-tree.heading("#4", text="ROBOT ASSIGNED")
-tree.column("#5", anchor=tk.CENTER)
-tree.heading("#5", text="Start Point")
-tree.column("#6", anchor=tk.CENTER)
-tree.heading("#6", text="End Point")
+
+tree = ttk.Treeview(window, column=columns_in_db, show='headings')
+for number, item in enumerate(columns_in_db):
+    tree.column(f"#{number+1}", anchor=tk.CENTER)
+    tree.heading(f"#{number+1}", text=item)
+
 tree.pack()
 favorite_locations = tk.Label(window, text = "Current orders")
 favorite_locations.pack()
@@ -322,18 +320,29 @@ button1.pack(pady=10)
 button4 = tk.Button(window, text="delete_pnt", command=delete_item)
 button4.pack(pady=10)
 
-name = tk.Label(window, text = "Name")
-entry1=tk.Entry(window)
-name.pack()
-entry1.pack()
-name2 = tk.Label(window, text = "Item")
-entry2=tk.Entry(window)
-name2.pack()
-entry2.pack()
-name3 = tk.Label(window, text = "Num Item")
-entry3=tk.Entry(window)
-name3.pack()
-entry3.pack()
+name_item = tk.Label(window, text = "Name")
+name_item_entry=tk.Entry(window)
+name_item.pack()
+name_item_entry.pack()
+
+enter_quantity=tk.Frame(window)
+name1 = tk.Label(enter_quantity, text = "Num Item R")
+entry1=tk.Entry(enter_quantity)
+name1.grid(row = 0, column = 0, pady = 2)
+entry1.grid(row = 1, column = 0, pady = 2)
+
+
+name2 = tk.Label(enter_quantity, text = "Num Item G")
+entry2=tk.Entry(enter_quantity)
+name2.grid(row = 0, column = 1, pady = 2)
+entry2.grid(row = 1, column = 1, pady = 2)
+
+
+name3 = tk.Label(enter_quantity, text = "Num Item B")
+entry3=tk.Entry(enter_quantity)
+name3.grid(row = 0, column = 2, pady = 2)
+entry3.grid(row = 1, column = 2, pady = 2)
+enter_quantity.pack()
 
 pickup_label=tk.Label(position_frame, text = "Pick spot position= ")
 pickup_label.pack()
