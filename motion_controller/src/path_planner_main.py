@@ -120,6 +120,8 @@ if __name__ == "__main__":
     # start=[0,0]
     # goal=[50,50]
 
+    
+
     start_end_pnt=[]
     highlight=Point()
     highlight.x=(start[0])*.05+.025         # translate from grid space coordinate to world space coordinate
@@ -144,9 +146,18 @@ if __name__ == "__main__":
     dimension = len(arr)                                                 # occupancy grid is square
     rand_area = [1,2]                                                              # for RRT later
     robot_planner = algorithms.Algorithms(start,goal,dimension,dimension,list(rotated_array), rand_area)    # create path planning object
+    
+    # checkpoint testing
+    check_order = robot_planner.checkpoint_order()
+    print(f'These are the checkpoints:')               # print the checkpoint list
+    print(f'This is the checkpoint order')
+
     robot_planner.a_star()                                                       # call a_star method, no expected return
     # print(f"This is the A_star path: {robot_planner.path['A_star']}")                           # access A_star key to display path
     
+
+   
+
     path_array=[]
     print('Sending A* to rviz')
     for value in robot_planner.path['A_star']:

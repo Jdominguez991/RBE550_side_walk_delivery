@@ -152,14 +152,24 @@ class Algorithms:
                                          [750,714],
                                          [581,989]]
             # this graph represents all building nodes and corner nodes, may be expanded later
-            self.building_checkpoint_graph = {[1450,989]: [[1241,1015]],
-                                              [995,989]: [[1241,1015],[721,994]],
-                                              [1264,897]: [[1241,1015]],
-                                              [750,714]: [[721,994]],
-                                              [581,989]: [[721,994]],
-                                              [1241,1015]: [[1450,989],[995,989],[1264,897]],
-                                              [721,994]: [[750,714],[581,989]]}
+            self.building_checkpoint_graph = {(1450,989): [(1241,1015)],
+                                              (995,989): [(1241,1015),(721,994)],
+                                              (1264,897): [(1241,1015)],
+                                              (750,714): [(721,994)],
+                                              (581,989): [(721,994)],
+                                              (1241,1015): [(1450,989),(995,989),(1264,897)],
+                                              (721,994): [(750,714),(581,989)]}
                               
+            # maybe i need to represent nodes as letters or something easier?
+            
+            # self.building_checkpoint_graph = {(1450,989): [(1241,1015)],
+            #                                   (995,989): [(1241,1015),(721,994)],
+            #                                   (1264,897): [(1241,1015)],
+            #                                   (750,714): [(721,994)],
+            #                                   (581,989): [(721,994)],
+            #                                   (1241,1015): [(1450,989),(995,989),(1264,897)],
+            #                                   (721,994): [(750,714),(581,989)]}
+
 
             # inside building nodes
             # center building inside hallway of door facing street
@@ -173,43 +183,63 @@ class Algorithms:
             if value == min_distance:
                 return key
 
-    def checkpoint_order(self,checkpoint_dict):             
+    def checkpoint_order(self):             
         '''
-        implement a mini-a* search across the building nodes to determine searching order with step size of 5 or something
+        implement a mini bfs search across the building nodes to determine searching order with step size of 5 or something
         return checkpoint stack which will be this: [building_checkpoints, indoor_checkpoints]
 
         actually maybe it would be better to just have one big graph
         '''
-        # for loop
-            # priority queue heappush checkpoints based on euclidean distance to goal
-        # return a queue for astar function to use
+        self.checkpoint_finder()
         # iterate through all building nodes to find the distance from start node
-        node_costs = {}
+        start_node_costs = {}
         for key,coordinates in self.building_checkpoint_graph.items():
-            node_costs[coordinates] = self.euclid_distance(self.start,coordinates)
+            for c in coordinates:
+                start_node_costs[c] = self.euclid_distance(self.start,c)
         # find nearest checkpoint
-        start_node = self.min_key_finder(node_costs)
+        start_node = self.min_key_finder(start_node_costs)
+        rospy.logdebug(f'This is the start node: {start_node}')
         list_of_checkpoints = []
         current_node = start_node
 
-        # search the graph for the next node to get to goal
-        if len(self.building_checkpoint_graph[current_node]) == 1:        # if there is only one value, just add it to list automatically
-            list_of_checkpoints.append(self.building_checkpoint_graph[current_node])        # this list will be used to create the stack
-        else:
-            next_node_costs = {}
-            for node in self.building_checkpoint_graph[current_node]:
-                curr_to_next = self.euclid_distance(current_node,node)
-                next_to_goal = self.euclid_distance(node,self.goal)
-                next_node_costs[node] = (curr_to_next+next_to_goal)        # calculate the cost to get to next node
-            next_node = self.min_key_finder(next_node_costs)                                # find lowest cost node
-            list_of_checkpoints.append(next_node) 
-            
+        # find the goal checkpoint node
+        goal_node_costs = {}
+        for key,coordinates in self.building_checkpoint_graph.items():
+            for c in coordinates:
+                goal_node_costs[c] = self.euclid_distance(self.goal,c)
+        end_node = self.min_key_finder(goal_node_costs)
+        rospy.logdebug(f'This is the end node: {end_node}')
 
-        # reverse the list and stack nodes into checkpoint queue
+        checkpoint_queue = queue.Queue()
+        checkpoint_queue.put(start_node)
+        visited = set()
+
+        # BFS search
+        while checkpoint_queue:
             
-        list_of_checkpoints.sort(None,True)
-        for checkpt in list_of_checkpoints:
-            self.checkpoint_list.put(checkpt)
+            path = checkpoint_queue.get()
+            node = path[-1]
+            if node not in visited:
+            
+                visited.add(node)
+
+                # Check if this node is the end node
+                if node == end_node:
+                    return path  # Return the path if it reaches the end
+
+                # Enqueue neighbors of the current node
+                for neighbor in self.building_checkpoint_graph.get(node, []):
+                    new_path = list(path)  # Create a new path
+                    new_path.append(neighbor)
+                    checkpoint_queue.append(new_path)
+        
+      
+
+        # stack nodes into checkpoint FIFO queue
+            
+        # list_of_checkpoints.sort(None,True)
+        # for checkpt in list_of_checkpoints:
+        #     self.checkpoint_list.put(checkpt)
 
         # now implmement for the 
         
