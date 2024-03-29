@@ -12,3 +12,10 @@ instructions for launching map and path planning tests
     source ../devel/setup.bash
     rosrun order_handler world_handler.py 
 3. launch rviz in separate terminal
+
+
+roscore
+rosrun order_handler world_handler.py
+roslaunch order_handler robot_spawner.launch
+roslaunch order_handler amcl.launch
+rosrun order_handler move_base.py

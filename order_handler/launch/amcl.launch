@@ -53,8 +53,8 @@
         <param name="range_min" value="0.45"/>
         <param name="use_inf" value="true"/>
     </node>
-
-    <node name="rviz_config" pkg="rviz" type="rviz" args="-d $(find order_handler)/config/robot_config.rviz"/>
+    <node name="rviz_config" pkg="rviz" type="rviz" args="-d $(find order_handler)/config/basic_config.rviz"/>
+    <!--<node name="rviz_config" pkg="rviz" type="rviz" args="-d $(find order_handler)/config/robot_config.rviz"/>
 
     <arg name="odom_topic" default="odom" />
     <arg name="laser_topic" default="scan3" />
@@ -77,7 +77,7 @@
 
         <remap from="odom" to="$(arg odom_topic)"/>
         <remap from="scan" to="$(arg laser_topic)"/>
-    </node>
+    </node>-->
 
     <!-- Navigation Node -->
     <!-- <arg name="odom_frame_id" default="odom"/>
