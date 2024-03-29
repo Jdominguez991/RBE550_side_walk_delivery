@@ -213,11 +213,12 @@ class Algorithms:
         checkpoint_queue = queue.Queue()
         checkpoint_queue.put(start_node)
         visited = set()
+        path=[]
 
         # BFS search
         while checkpoint_queue:
             
-            path = checkpoint_queue.get()
+            path.append(checkpoint_queue.get())
             node = path[-1]
             if node not in visited:
             
@@ -233,7 +234,7 @@ class Algorithms:
                     new_path.append(neighbor)
                     checkpoint_queue.append(new_path)
         
-      
+        rospy.logfatal("jumped out of while loop error")
 
         # stack nodes into checkpoint FIFO queue
             

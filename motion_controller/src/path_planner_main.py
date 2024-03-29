@@ -149,7 +149,7 @@ if __name__ == "__main__":
     
     # checkpoint testing
     check_order = robot_planner.checkpoint_order()
-    print(f'These are the checkpoints:')               # print the checkpoint list
+    print(f'These are the checkpoints: {check_order}')               # print the checkpoint list
     print(f'This is the checkpoint order')
 
     robot_planner.a_star()                                                       # call a_star method, no expected return
