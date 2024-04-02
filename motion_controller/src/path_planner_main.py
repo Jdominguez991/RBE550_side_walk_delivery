@@ -93,40 +93,40 @@ if __name__ == "__main__":
     convert_values=ndimage.binary_dilation(convert_values, structure=struct1,iterations=2).astype(convert_values.dtype)
     # rotated_array = cv2.dilate(rotated_array, kernel, iterations=1)  
 
-
+    copy_original_map=rotated_array
     for iy, ix in numpy.ndindex(convert_values.shape):
-        if convert_values[iy,ix]==1:
+        if convert_values[iy,ix]==1 and not copy_original_map==1:
             rotated_array[iy,ix]=.7
 
 
     rate = rospy.Rate(15)
 
 
-    print(arr)
-    path_array=[]
-    for num_row,value in enumerate(rotated_array):
-        for num_col,col_value in enumerate(value):
-            if not col_value == -1 and not col_value==0:
-                #Display points that it has visited
-                print(num_col, num_row, col_value)
-                highlight=Point()
-                highlight.x=(num_row-1000)*.05+.025         # translate from grid space coordinate to world space coordinate
-                highlight.y=(num_col-1000)*.05+.025
-                highlight.z=0
-                path_array.append(highlight)
+    # print(arr)
+    # path_array=[]
+    # for num_row,value in enumerate(rotated_array):
+    #     for num_col,col_value in enumerate(value):
+    #         if not col_value == -1 and not col_value==0:
+    #             #Display points that it has visited
+    #             print(num_col, num_row, col_value)
+    #             highlight=Point()
+    #             highlight.x=(num_row-1000)*.05+.025         # translate from grid space coordinate to world space coordinate
+    #             highlight.y=(num_col-1000)*.05+.025
+    #             highlight.z=0
+    #             path_array.append(highlight)
 
-                grid_cells_msg = GridCells()
-                grid_cells_msg.cell_width = grid[3]
-                grid_cells_msg.cell_height = grid[3]
-                grid_cells_msg.cells = path_array
-                grid_cells_msg.header.frame_id = "map"
-                cSpacePub.publish(grid_cells_msg)
+    #             grid_cells_msg = GridCells()
+    #             grid_cells_msg.cell_width = grid[3]
+    #             grid_cells_msg.cell_height = grid[3]
+    #             grid_cells_msg.cells = path_array
+    #             grid_cells_msg.header.frame_id = "map"
+    #             cSpacePub.publish(grid_cells_msg)
     
-    for w in range(1,5):
-        cSpacePub.publish(grid_cells_msg)
-        rate.sleep()
+    # for w in range(1,5):
+    #     cSpacePub.publish(grid_cells_msg)
+    #     rate.sleep()
 
-    sys.exit()
+    # sys.exit()
 
     rate = rospy.Rate(15)
     while(given_coor[0]==0 or given_coor[1]==0):
