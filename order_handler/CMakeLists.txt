@@ -162,6 +162,7 @@ catkin_install_python(PROGRAMS
    src/order_handeler.py
    src/world_handler.py
    src/product_spawner.py
+   src/move_base.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
