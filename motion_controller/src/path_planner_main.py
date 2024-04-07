@@ -42,7 +42,7 @@ def starting_pnt(data):
     rot = Rotation.from_quat(quaternion_angle)
     start_location["angle"]= rot.as_euler('xyz', degrees=True)
     # print(start_location)
-    rospy.loginfo(f"start cor:{start_location}")
+    rospy.loginfo(f"start coordinates:{start_location}")
     given_coor[0]=1
 def end_pnt(data):
     global start_location, given_coor
@@ -52,7 +52,7 @@ def end_pnt(data):
     
     rot = Rotation.from_quat(quaternion_angle)
     end_location["angle"]= rot.as_euler('xyz', degrees=True)
-    rospy.loginfo(f"end cor:{end_location}")
+    rospy.loginfo(f"end coordinates:{end_location}")
     given_coor[1]=1
     
 if __name__ == "__main__":
@@ -120,6 +120,8 @@ if __name__ == "__main__":
     # start=[0,0]
     # goal=[50,50]
 
+    
+
     start_end_pnt=[]
     highlight=Point()
     highlight.x=(start[0])*.05+.025         # translate from grid space coordinate to world space coordinate
@@ -144,12 +146,22 @@ if __name__ == "__main__":
     dimension = len(arr)                                                 # occupancy grid is square
     rand_area = [1,2]                                                              # for RRT later
     robot_planner = algorithms.Algorithms(start,goal,dimension,dimension,list(rotated_array), rand_area)    # create path planning object
-    robot_planner.a_star()                                                       # call a_star method, no expected return
-    print(f"This is the A_star path: {robot_planner.path['A_star']}")                                          # access A_star key to display path
     
+    # checkpoint testing
+    check_order = robot_planner.checkpoint_order()
+    print(f'These are the checkpoints: {check_order}')               # print the checkpoint list
+    print(f'This is the checkpoint order')
+
+    robot_planner.a_star()                                                       # call a_star method, no expected return
+    # print(f"This is the A_star path: {robot_planner.path['A_star']}")                           # access A_star key to display path
+    
+
+   
+
     path_array=[]
+    print('Sending A* to rviz')
     for value in robot_planner.path['A_star']:
-        print(value)
+        print(value)                        # print path
         #Display points that it has visited
         highlight=Point()
         highlight.x=(value[0]-1000)*.05+.025         # translate from grid space coordinate to world space coordinate
