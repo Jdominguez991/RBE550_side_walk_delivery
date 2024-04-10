@@ -1,73 +1,119 @@
 #!/usr/bin/env python
-
 import rospy
-from geometry_msgs.msg import Twist, PoseStamped
+import math
+import tf
+from geometry_msgs.msg import Twist, PoseStamped, Point
 from nav_msgs.msg import Odometry
-from math import pow, atan2, sqrt
+from tf.transformations import euler_from_quaternion
+from tf.transformations import quaternion_from_euler
+
 
 class MoveRobot():
-    def __init__(self):
+    def __init__(self, velocity):
         rospy.init_node('move_robot', anonymous=True)
         self.velocity_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.pose_subscriber = rospy.Subscriber('/odom', Odometry, self.update_pose)
-
+        self.goal_tolerance_rotate = 0.01
+        self.goal_tolerance_linear = 0.3
+        self.position_tolerance_linear = 0.28
         self.pose = Odometry()
         self.rate = rospy.Rate(10)
+        self.velocity = velocity
 
     def update_pose(self, data):
         self.pose = data
 
-    def euclidean_distance(self, goal_pose):
-        return sqrt(pow((goal_pose.pose.position.x - self.pose.pose.pose.position.x), 2) +
-                    pow((goal_pose.pose.position.y - self.pose.pose.pose.position.y), 2))
+    def calculate_angle(self, goal_pose):
+        try:
+            print("Rotating to correct angle...")
+            x_act = self.pose.pose.pose.position.x
+            y_act = self.pose.pose.pose.position.y
+            z_act = self.pose.pose.pose.orientation
+            
+            _, _, yaw = euler_from_quaternion([z_act.x, z_act.y, z_act.z, z_act.w])
 
-    def linear_vel(self, goal_pose, constant=0.5):
-        return constant * self.euclidean_distance(goal_pose)
+            x = goal_pose.pose.position.x
+            y = goal_pose.pose.position.y
+            
+    
+            angle_to_next_goal = math.atan2(y - y_act, x - x_act)
+            print(x_act,x,y_act,y,angle_to_next_goal-yaw)
 
-    def steering_angle(self, goal_pose):
-        return atan2(goal_pose.pose.position.y - self.pose.pose.pose.position.y,
-                     goal_pose.pose.position.x - self.pose.pose.pose.position.x)
+            while (abs(angle_to_next_goal - yaw) > self.goal_tolerance_rotate):
+                z_act = self.pose.pose.pose.orientation
+                _, _, yaw = euler_from_quaternion([z_act.x, z_act.y, z_act.z, z_act.w])
 
-    def angular_vel(self, goal_pose, constant=1):
-        return constant * (self.steering_angle(goal_pose) - self.pose.pose.pose.orientation.z)
+                twist_msg = Twist()
+                # Calculate angular velocity to rotate towards the next goal point
+                angular_velocity = (angle_to_next_goal - yaw) * self.velocity
 
-    def move2goal(self, goal_pose, velocity):
-        vel_msg = Twist()
+                # Create Twist message to rotate the robot
+                twist_msg.angular.z = angular_velocity
+                self.velocity_publisher.publish(twist_msg)
 
-        while self.euclidean_distance(goal_pose) >= 0.01:
-            # Linear velocity
-            vel_msg.linear.x = min(self.linear_vel(goal_pose), velocity)
-            vel_msg.linear.y = 0
-            vel_msg.linear.z = 0
-
-            # Angular velocity
-            vel_msg.angular.x = 0
-            vel_msg.angular.y = 0
-            vel_msg.angular.z = self.angular_vel(goal_pose)
-
-            # Publishing our vel_msg
-            self.velocity_publisher.publish(vel_msg)
+            twist_msg = Twist()
+            self.velocity_publisher.publish(twist_msg)  # Stop the robot
+            print("Angle riched!")
             self.rate.sleep()
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            pass
 
-        # Stopping the robot after reaching the goal
-        vel_msg.linear.x = 0
-        vel_msg.angular.z = 0
-        self.velocity_publisher.publish(vel_msg)
+    def linear_movement(self, goal_pose):
+        try:
+            print("Driving to next spot...")
+            x_goal = goal_pose.pose.position.x
+            y_goal = goal_pose.pose.position.y
+
+            while True:
+                x_act = self.pose.pose.pose.position.x
+                y_act = self.pose.pose.pose.position.y
+
+                distance_to_goal = math.sqrt((x_act - x_goal)**2 + (y_act - y_goal)**2)
+
+                # Set the linear velocity components
+                twist_msg = Twist()
+                twist_msg.linear.x = self.velocity
+                twist_msg.linear.y = self.velocity
+                twist_msg.linear.z = 0
+
+                # Publish the twist message
+                self.velocity_publisher.publish(twist_msg)
+
+                # Check if the robot is close to the goal position
+                if distance_to_goal < self.goal_tolerance_linear:
+                    # Check if the robot's actual position is similar to the goal position
+                    if abs(x_act - x_goal) < self.position_tolerance_linear and abs(y_act - y_goal) < self.goal_tolerance_linear:
+                        twist_msg = Twist()  # Stop the robot
+                        self.velocity_publisher.publish(twist_msg)
+                        print("Reached goal position")
+                        break
+
+                self.rate.sleep()
+
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            pass
+ 
+    def navigate_to_next_goal(self, point,num):
+        goal_pose = PoseStamped()
+        goal_pose.pose.position.x = point[0]
+        goal_pose.pose.position.y = point[1]
+        #goal_pose.pose.orientation.z = point[2]
+
+        self.calculate_angle(goal_pose)
+        self.linear_movement(goal_pose)
+        self.rate.sleep()
 
 if __name__ == '__main__':
     try:
-        x_goal, y_goal, orientation = [1.2, 0.2, 0]
-        velocity = 0.5
+        points = [[1.5, 0.0],[1.7, 1.0],[2.3,-0.7]]
+        velocity = 0.8
 
-        move_robot = MoveRobot()
-
-        # Define goal pose
-        goal_pose = PoseStamped()
-        goal_pose.pose.position.x = x_goal
-        goal_pose.pose.position.y = y_goal
-        goal_pose.pose.orientation.z = orientation
-
-        move_robot.move2goal(goal_pose, velocity)
+        move_robot = MoveRobot(velocity)
+        num = 0
+        for point in points:
+            move_robot.navigate_to_next_goal(point,num)
+            num =+ 1
+        
         rospy.spin()
 
     except rospy.ROSInterruptException:
