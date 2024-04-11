@@ -12,7 +12,7 @@ from geometry_msgs.msg import Point, PoseStamped, PoseWithCovarianceStamped, Twi
 from nav_msgs.msg import GridCells, Odometry
 from tf.transformations import euler_from_quaternion
 from gazebo_msgs.msg import ModelStates
-
+from scipy import ndimage
 
 start_location={"x":0,"y":0,"angle":0}
 end_location={"x":0,"y":0,"angle":0}
@@ -182,6 +182,22 @@ if __name__ == "__main__":
     arr = numpy.array(occu_map_array)
     rotated_array=numpy.rot90(arr)
     rotated_array=numpy.flip(rotated_array,0)
+    
+    convert_values=rotated_array
+    convert_values[convert_values<0] = 0
+
+    # Taking a matrix of size 5 as the kernel 
+    kernel = numpy.ones((5, 5), numpy.uint8)
+    struct1 = ndimage.generate_binary_structure(2, 1)
+    convert_values=ndimage.binary_dilation(convert_values, structure=struct1,iterations=2).astype(convert_values.dtype)
+    # rotated_array = cv2.dilate(rotated_array, kernel, iterations=1)  
+
+    copy_original_map=rotated_array
+    for iy, ix in numpy.ndindex(convert_values.shape):
+        if convert_values[iy,ix]==1 and not copy_original_map==1:
+            rotated_array[iy,ix]=.7
+
+
     rate = rospy.Rate(15)
 
 
@@ -209,7 +225,7 @@ if __name__ == "__main__":
     #     cSpacePub.publish(grid_cells_msg)
     #     rate.sleep()
 
-    
+    # sys.exit()
 
     rate = rospy.Rate(15)
     while(given_coor[0]==0 or given_coor[1]==0):
