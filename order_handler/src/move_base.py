@@ -97,7 +97,6 @@ class MoveRobot():
         goal_pose = PoseStamped()
         goal_pose.pose.position.x = point[0]
         goal_pose.pose.position.y = point[1]
-        #goal_pose.pose.orientation.z = point[2]
 
         self.calculate_angle(goal_pose)
         self.linear_movement(goal_pose)
