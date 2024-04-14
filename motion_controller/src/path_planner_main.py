@@ -95,7 +95,7 @@ if __name__ == "__main__":
 
     copy_original_map=rotated_array
     for iy, ix in numpy.ndindex(convert_values.shape):
-        if convert_values[iy,ix]==1 and not copy_original_map==1:
+        if convert_values[iy,ix]==1 and not copy_original_map[iy,ix]==1:
             rotated_array[iy,ix]=.7
 
 
