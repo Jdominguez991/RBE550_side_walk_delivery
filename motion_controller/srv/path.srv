@@ -1,0 +1,4 @@
+int16[2] start_point
+int16[2] end_point
+---
+point[] path
