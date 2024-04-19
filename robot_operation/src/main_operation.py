@@ -1,208 +1,192 @@
 #!/usr/bin/env python
-
-from statemachine import StateMachine, State
 import rospy
-from robot_operation.srv import send_order, send_orderResponse
-from std_msgs.msg import String
-from pathlib import Path
-from yaml.loader import SafeLoader
-import yaml
-from threading import Thread
-from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Vector3
-from std_srvs.srv import SetBool,SetBoolResponse,SetBoolRequest, Trigger, TriggerResponse
-import time
-import move_base.move_base as move_base
+import math
+import tf
+from geometry_msgs.msg import Twist, PoseStamped, Point
+from nav_msgs.msg import Odometry
+from tf.transformations import euler_from_quaternion
+from tf.transformations import quaternion_from_euler
 
-class SingletonClass(object):
-  def __new__(cls):
-    if not hasattr(cls, 'instance'):
-      cls.instance = super(SingletonClass, cls).__new__(cls)
-    return cls.instance
-class acml(SingletonClass):
-    def is_localized():
-        rospy.loginfo("default robot always localized need to change when navigation code is made")
-        return True
-class main_states(StateMachine):
-    waiting_acml_lock = State(initial=True)
-    waiting_order = State()
-    picking_up_items = State()
-    moving_to_drop_off = State()
-    moving_back_home = State()
-    acml_item=acml()
-    step = (
-        waiting_acml_lock.to(waiting_order, cond="is_localized")
-        | waiting_order.to(picking_up_items)
-        | picking_up_items.to(moving_to_drop_off)
-        | moving_to_drop_off.to(moving_back_home)
-        | moving_back_home.to(waiting_order)
-    )
+pose_gl = Odometry()
 
-    def before_step(self, event: str, source: State, target: State):
-        # message = ". " + message if message else ""
-        return f"Running {event} from {source.id} to {target.id}"
+class MoveRobot():
+    def __init__(self, velocity, rate):
+        rospy.init_node('move_robot', anonymous=True)
+        self.velocity_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+        self.goal_tolerance_rotate = 0.01
+        self.goal_tolerance_linear = 0.3
+        self.position_tolerance_linear = 0.28
+        self.pose = Odometry()
+        self.rate = rospy.Rate(rate)  # Set the rate based on the argument
+        self.velocity = velocity
+        self.yaw = 0
+        self.next_straight = False
 
-    def is_localized(self, event_data):
-        return self.acml_item.is_localized()
-
-    def on_enter_red(self):
-        print("Don't move.")
-
-    def on_exit_red(self):
-        print("Go ahead!")
-
-class current_order_status(SingletonClass):
-    #[quantity, is_picked_up]
-    object_info={"red":[0,True,[0,0]],"green":[0,True,[0,0]],"blue":[0,True,[0,0]]} #If set to true means no items from that color need to be picked up
-    end_location=[0,0] #x,y
-    desired_points=[]
-    home_position=[0,0]
-    current_robot_state=main_states()
-
-    def reset_states(self):
-        copy_info= self.object_info
-        for color in copy_info.keys():
-            self.object_info[color][0]=0
-            self.object_info[color][1]=True
-
-    def __init__(self):
-        config_yaml=(Path(__file__).resolve().parents[2]).joinpath('order_handler/src/conf.yaml')     
-        with open(config_yaml,'r') as f:
-            data = yaml.load(f, Loader=SafeLoader)
-            for pickup in data["pick_up_loc"]:
-                if pickup["color"].upper() == "R":
-                    self.object_info["red"][2]=pickup["unit_location"][:2]
-                elif pickup["color"].upper() == "G":
-                    self.object_info["green"][2]=pickup["unit_location"][:2]
-                elif pickup["color"].upper() == "B":
-                    self.object_info["blue"][2]=pickup["unit_location"][:2]
-                else:
-                    rospy.logerr("unknown color, please fix if statement for new color")
-            self.home_position=data["robot_info"]["location"]
-
-    def incoming_order(self,r,g,b,location):
-        self.reset_states()
-        if(r>0):
-            self.object_info["red"][0]=[r,False]
-        if(g>0):
-            self.object_info["green"][0]=[g,False]
-        if(b>0):
-            self.object_info["blue"][0]=[b,False]
-
-        split_location=location.split(",")
-        self.end_location=[int(split_location[0]),int(split_location[1])]
-        self.__process_points()
-        self.current_robot_state.step()
-        return True
-
-    def __process_points(self):
-
-        for item_num,info in enumerate(self.object_info):
-            if info[0] > 0:
-                if item_num==0:
-                    self.desired_points.append([info[2],1])
-                else:
-                    self.desired_points.append([info[2],0])
-        self.desired_points.append([self.end_location,1])
-        self.desired_points.append([self.home_position,1])
-
-    def new_point(self):
-        self.desired_points.pop(0)
-        if self.desired_points[0][1]:
-            self.current_robot_state.step()
-        return self.desired_points[0][0]
-    
-    def current_goal(self):
-        return self.desired_points[0]
-    
-    def desired_points_list(self):
-        return self.desired_points
-
-    def current_state(self):
-        self.current_robot_state.current_state.id
-
-class ros_class(SingletonClass):
-    order_info=current_order_status()
-
-    # create a function for getting a occupancy map
-    def request_map(color):
-        global resolution_cell_per_meter
-        """
-        Requests the map from the map server.
-        :return [OccupancyGrid] The grid if the service call was successful,
-                                                                                                        None in case of error.
-        """
-        # REQUIRED CREDIT
-        rospy.loginfo("Requesting the map")
-        # grid = rospy.ServiceProxy('nav_msgs/GetMap', GetMap)
-        rospy.wait_for_service(f'/product_spawner_{color}')
-        try:
-            grid = rospy.ServiceProxy(f'/product_spawner_{color}', Trigger)
-            occuGrid = grid()
-            return([occuGrid.map.data,occuGrid.map.info.width,occuGrid.map.info.height,occuGrid.map.info.resolution])
-        except:
-            rospy.loginfo("Failed")
-
-    def received_order(self,data):
-        self.order_info.incoming_order(data.r,data.g,data.b,data.location)
-        return send_orderResponse(True)
-    
-    #Keep sending robot status for any one that wants it
-    def keep_sending_status(self):
-        rate = rospy.Rate(15)
-        while not rospy.is_shutdown():
-            self.status.publish(self.order_info.current_state())
-            rate.sleep()
-    
-    def __init__(self):
-        rospy.init_node("robot_main")
-        self.s = rospy.Service('robot1/receive_order', send_order, self.received_order)
-        self.status = rospy.Publisher('robot1/current_status', String, queue_size=10)
-        self.send_velocity_info = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
-        self.thread = Thread(target = self.keep_sending_status)
-        self.thread.start() # This code will execute in parallel to the current code
-
-    def kill_node(self):
-        self.thread.join
-
-    def send_new_velocity(self, forward_vel, angular_vel):
-        msg=Twist()
-        linear_vel=Vector3()
-        linear_vel.x=forward_vel
-        linear_vel.y=0
-        linear_vel.z=0
-
-        angular_vel=Vector3()
-        angular_vel.x=0
-        angular_vel.y=0
-        angular_vel.z=angular_vel
-
-        msg.linear=linear_vel
-        msg.angular=angular_vel
-        self.send_velocity_info.publish(msg)
-    def ask_new_product(self):
-        rospy.loginfo("ask new product")
-        return True
-    def main_code(self):
-        current_state=self.order_info.current_state()
-        while not rospy.is_shutdown():
-            if current_state=="picking_up_items":
-                desired_goal=self.order_info.current_goal()
-                #------------------move_to_goal------------------------
+    def next_point(self, goal_pose, next_point):
+        x_goal = goal_pose.pose.position.x
+        y_goal = goal_pose.pose.position.y
+        
+        if next_point:
+            prev_x_goal = next_point.pose.position.x
+            prev_y_goal = next_point.pose.position.y
+            angle_to_next_goal = math.atan2(prev_y_goal - y_goal, prev_x_goal - x_goal)
                 
-                self.order_info.new_point()
-                #
-                while(True):
-                    if self.ask_new_point():
-                        break
-                    time.sleep(1)
-            elif current_state=="moving_to_drop_off":
-                desired_goal=self.order_info.current_goal()
-                #------------------move_to_goal------------------------
-                self.order_info.new_point()
-            elif current_state=="moving_back_home":
-                desired_goal=self.order_info.current_goal()
-                #------------------move_to_goal------------------------
-                self.order_info.new_point()
-########################################################################################
-ros=ros_class()
+            if(angle_to_next_goal < self.goal_tolerance_rotate and angle_to_next_goal > -(self.goal_tolerance_rotate)):
+                self.next_straight = True
+            else:
+                self.next_straight = False
 
+        print(self.next_straight)
+
+    def calculate_angle(self, goal_pose):
+        try:
+            print("Rotating to correct angle...")
+
+            x_act = self.pose.pose.pose.position.x
+            y_act = self.pose.pose.pose.position.y
+            z_act = self.pose.pose.pose.orientation
+                
+            _, _, yaw = euler_from_quaternion([z_act.x, z_act.y, z_act.z, z_act.w])
+
+            x = goal_pose.pose.position.x
+            y = goal_pose.pose.position.y
+        
+            angle_to_next_goal = math.atan2(y - y_act, x - x_act)
+
+            if(not self.next_straight):
+                while (abs(angle_to_next_goal - yaw) > self.goal_tolerance_rotate):
+                    z_act = self.pose.pose.pose.orientation
+                    _, _, yaw = euler_from_quaternion([z_act.x, z_act.y, z_act.z, z_act.w])
+
+                    twist_msg = Twist()
+                    # Calculate angular velocity to rotate towards the next goal point
+                    angular_velocity = (angle_to_next_goal - yaw) * self.velocity
+
+                    # Create Twist message to rotate the robot
+                    twist_msg.angular.z = angular_velocity
+                    self.velocity_publisher.publish(twist_msg)
+
+                twist_msg = Twist()
+                self.velocity_publisher.publish(twist_msg)  # Stop the robot
+
+                print("Angle riched!!!")
+            else:
+                print("Going straigth")
+       
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            pass
+
+    def linear_movement(self, goal_pose, next_pose=None):
+        try:
+            
+            x_goal = goal_pose.pose.position.x
+            y_goal = goal_pose.pose.position.y
+            
+            x_act = self.pose.pose.pose.position.x
+            y_act = self.pose.pose.pose.position.y
+
+            x_diff = x_act - x_goal
+            y_diff = y_act - y_goal
+                
+            distance_to_goal = math.sqrt((x_diff)**2 + (y_diff)**2)
+
+            print("Driving to next spot...")
+            while True:
+                x_act = self.pose.pose.pose.position.x
+                y_act = self.pose.pose.pose.position.y
+
+                x_diff = x_act - x_goal
+                y_diff = y_act - y_goal
+                
+                distance_to_goal = math.sqrt((x_diff)**2 + (y_diff)**2)
+
+                # Set the linear velocity components
+                
+                if(not self.next_straight):
+                    vel = self.velocity * distance_to_goal
+                else:
+                    vel = self.velocity
+                    
+                twist_msg = Twist()
+                twist_msg.linear.x = vel
+                twist_msg.linear.y = vel
+                twist_msg.linear.z = 0 
+                # Publish the twist message
+                self.velocity_publisher.publish(twist_msg)
+                
+                # Check if the robot is close to the goal position
+                if abs(distance_to_goal) < self.goal_tolerance_linear:
+                    # Check if the robot's actual position is similar to the goal position
+                    if (abs(x_diff) < self.position_tolerance_linear and 
+                        abs(y_diff) < self.goal_tolerance_linear and
+                        self.next_straight == False):
+                        twist_msg = Twist()  # Stop the robot
+                        self.velocity_publisher.publish(twist_msg)
+                        print("Reached goal position...")
+                        break
+                    else:
+                        twist_msg = Twist()
+                        twist_msg.linear.x = self.velocity
+                        twist_msg.linear.y = self.velocity
+                        twist_msg.linear.z = 0
+                        print("Next point straight...")
+                        break
+
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            pass
+    
+    def update_pose(self, data):
+        self.pose = data
+
+
+    def get_current_position(self):
+        return self.pose.pose.pose.position.x, self.pose.pose.pose.position.y, self.yaw
+    
+    def navigate_to_next_goal(self, point, next_goal_point=None):
+        goal_pose = PoseStamped()
+        goal_pose.pose.position.x = point[0]
+        goal_pose.pose.position.y = point[1]
+
+        self.next_point(goal_pose, next_goal_point)
+        self.calculate_angle(goal_pose)
+        self.linear_movement(goal_pose, next_goal_point)
+
+
+def update_pose_callback(data, move_robot_instance):
+    move_robot_instance.update_pose(data)
+    global pose_gl 
+    pose_gl = data
+
+
+if __name__ == '__main__':
+    try:
+
+        points = [[2.5, 0.0],[7.0, 0.0],[8,0.5]]
+        velocity = 0.8
+        rate = 10
+
+        move_robot = MoveRobot(velocity, rate)  # Pass the rate to the constructor
+        move_robot.pose_subscriber = rospy.Subscriber('/odom', Odometry, lambda data: update_pose_callback(data, move_robot))
+        print(pose_gl.pose.pose.orientation.y)
+        # Initialize previous goal pose as None
+        next_goal_point = None
+
+        for i in range(len(points)):
+            point = points[i]
+            next_point = points[i + 1] if i + 1 < len(points) else None
+            if(next_point):
+            # Update the previous goal pose
+                next_goal_point = PoseStamped()
+                next_goal_point.pose.position.x = point[0]
+                next_goal_point.pose.position.y = point[1]
+            # Get the current position
+            current_x, current_y, current_orientation = move_robot.get_current_position()
+            print("Current position:", current_x, current_y, current_orientation)
+
+            # Navigate to the next goal, passing the previous goal pose
+            move_robot.navigate_to_next_goal(point, next_goal_point)       
+        
+        rospy.spin()
+
+    except rospy.ROSInterruptException:
+        pass
