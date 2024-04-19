@@ -11,6 +11,7 @@ from threading import Thread
 from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Vector3
 from std_srvs.srv import SetBool,SetBoolResponse,SetBoolRequest, Trigger, TriggerResponse
 import time
+import move_base.move_base as move_base
 
 class SingletonClass(object):
   def __new__(cls):
@@ -26,7 +27,6 @@ class main_states(StateMachine):
     waiting_order = State()
     picking_up_items = State()
     moving_to_drop_off = State()
-    dropped_off = State()
     moving_back_home = State()
     acml_item=acml()
     step = (
@@ -188,6 +188,7 @@ class ros_class(SingletonClass):
             if current_state=="picking_up_items":
                 desired_goal=self.order_info.current_goal()
                 #------------------move_to_goal------------------------
+                
                 self.order_info.new_point()
                 #
                 while(True):
