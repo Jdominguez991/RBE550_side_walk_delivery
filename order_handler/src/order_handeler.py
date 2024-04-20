@@ -7,7 +7,7 @@ from tkinter import LEFT, RIGHT, ttk
 import signal
 from threading import Thread
 import pandas as pd
-from scipy.spatial.transform import Rotation
+# from scipy.spatial.transform import Rotation
 from curses import mousemask
 import math
 from operator import contains
@@ -26,6 +26,7 @@ from nav_msgs.msg import GridCells, OccupancyGrid, Path
 from geometry_msgs.msg import Point, Pose, PoseStamped, PoseWithCovarianceStamped, Quaternion
 from tf.transformations import quaternion_from_euler
 from std_msgs.msg import Bool, String
+
 
 # install tkinter sudo apt-get install python3-tk
 # pip3 install numpy scipy matplotlib ipython jupyter pandas sympy nose
@@ -52,6 +53,8 @@ columns_in_db=['orderID','productID','num_items_r','num_items_g','num_items_b','
 order_data={"start_data":None, "end_data":None, "vld_start":False, "vld_end":False,"vld_text_input":False}
 resolution_cell_per_meter=1
 def initialize_ros_node():
+    """Initialize all the parts needed to interact with ros
+    """
     global status_functions
     global robot_status
     # Initialize the node and call it "path_planner"
@@ -61,21 +64,51 @@ def initialize_ros_node():
     # rospy.wait_for_message('move_base_simple/goal', PoseStamped)
     rospy.Subscriber('move_base_simple/goal', PoseStamped, rviz_pnt_select)
 
+    # For assuming multiple robot will be used
     for num in range(len(robots)):
         robots[num] = [rospy.Publisher(f'/robot{num}/start', Pose, queue_size=10), rospy.Publisher(f'/robot{num}/end', Pose, queue_size=10)] #msg or type []
     status_functions=[create_status_func(i) for i in range(len(robots))]
+    # Make subscribers for the current status of robots
     for num in range(len(robots)):
-        rospy.Subscriber(f'/robot{num}/status', String, status_functions[num])
+        rospy.Subscriber(f'/robot{num}/current_status', String, status_functions[num])
         robot_status.append("NOT AVAIL")
-
+ 
+def euler_from_quaternion(x, y, z, w):
+        """
+        Convert a quaternion into euler angles (roll, pitch, yaw)
+        roll is rotation around x in radians (counterclockwise)
+        pitch is rotation around y in radians (counterclockwise)
+        yaw is rotation around z in radians (counterclockwise)
+        """
+        t0 = +2.0 * (w * x + y * z)
+        t1 = +1.0 - 2.0 * (x * x + y * y)
+        roll_x = math.atan2(t0, t1)
+     
+        t2 = +2.0 * (w * y - z * x)
+        t2 = +1.0 if t2 > +1.0 else t2
+        t2 = -1.0 if t2 < -1.0 else t2
+        pitch_y = math.asin(t2)
+     
+        t3 = +2.0 * (w * z + x * y)
+        t4 = +1.0 - 2.0 * (y * y + z * z)
+        yaw_z = math.atan2(t3, t4)
+     
+        return roll_x, pitch_y, yaw_z # in radians
 def rviz_pnt_select(data):
+    """Convert the rviz gaol point that a user selects into x and y position
+
+    Args:
+        data (geometry_msgs/PoseWithCovarianceStamped): msg with information for where the end position of the robt should be
+    """
     x_pos=data.pose.position.x
     y_pos=data.pose.position.y
     quaternion_angle=[data.pose.orientation.x,data.pose.orientation.y,data.pose.orientation.z,data.pose.orientation.w]
 
-    rot = Rotation.from_quat(quaternion_angle)
+    # rot = Rotation.from_quat(quaternion_angle)
+    rot=euler_from_quaternion(quaternion_angle)
     rot_euler = rot.as_euler('xyz', degrees=True)
 
+    #Replace the values on tkinter with the values that were selected from rviz 
     x_pos_entry.delete(0,tk.END)
     x_pos_entry.insert(0,int(x_pos/resolution_cell_per_meter))
 
@@ -90,13 +123,28 @@ def rviz_pnt_select(data):
     # rvix_z_angle.config(text=f"rviz z angle= {rot_euler[2]}")
 
 def create_status_func(robot_num):
+    """create a function that can be placed into a list to be called later on
+
+    Args:
+        robot_num (string): The number of robot this sub function should get used in
+
+    Return:
+        function: return function to grab robot status
+    """
     def update_status(data):
+        """Update the global status of the robot
+
+        Args:
+            data (str): msg with information of status of that robot
+        """
         global robot_status
         robot_status[robot_num]=data.data #should be of string type
     return update_status
         
     
 def connect():
+    """Create data base file to handle orders
+    """
     global db_file_name, columns_in_db
     con1 = sqlite3.connect(db_file_name)
     print(con1)
@@ -120,26 +168,12 @@ def connect():
     # cur1.execute("INSERT INTO favorite_spots_tbl VALUES('pickup_one2','[1243,-45]','0')")
     con1.commit()
     con1.close()
-def request_map():
-    global resolution_cell_per_meter
-    """
-    Requests the map from the map server.
-    :return [OccupancyGrid] The grid if the service call was successful,
-                                                                                                    None in case of error.
-    """
-    # REQUIRED CREDIT
-    rospy.loginfo("Requesting the map")
-    # grid = rospy.ServiceProxy('nav_msgs/GetMap', GetMap)
-    rospy.wait_for_service('/static_map')
-    try:
-        grid = rospy.ServiceProxy('/static_map', GetMap)
-        occuGrid = grid()
-        resolution_cell_per_meter=occuGrid.map.info.resolution
-    except:
-        rospy.loginfo("Failed")
+
 def view_orders():
+    """Update all the data o the order tree to display what is currently in database
+    """
     global db_file_name
-    print("view funct")
+    rospy.logdebug("view funct")
     con1 = sqlite3.connect(db_file_name)
     cur1 = con1.cursor()
     cur1.execute("SELECT * FROM order_tbl")
@@ -150,27 +184,27 @@ def view_orders():
     con1.close()
 
 def view_locations():
+    """Refresh the display to display the locations that are saved
+    """
     global db_file_name
-    print("view funct_locations")
+    rospy.logdebug("view funct_locations")
     con1 = sqlite3.connect(db_file_name)
     cur1 = con1.cursor()
     cur1.execute("SELECT * FROM favorite_spots_tbl")
     rows = cur1.fetchall()  
-    print(rows)
+    rospy.logdebug(rows)
     location_tree.delete(*location_tree.get_children())
     for row in rows:
         location_tree.insert("", tk.END, values=row)        
     con1.close()
 
 def upload_data():
+    """upload the order info into the order db
+    """
     global index, db_file_name, order_data
     con1 = sqlite3.connect(db_file_name)
-    print(con1.total_changes)
-    print("uploading data")
+    rospy.logdebug("uploading data")
     cur1 = con1.cursor()
-    y=entry1.get()
-    w=entry2.get()
-    q=entry3.get()
     cur1.execute(f"INSERT INTO order_tbl VALUES ('{name_item_entry.get()}#{index}', '{name_item_entry.get()}#{index}', '{entry1.get()}','{entry2.get()}','{entry3.get()}', 'NOT ASSIGNED', '({order_data['start_data'][1]},{order_data['start_data'][2]})','({order_data['end_data'][1]},{order_data['end_data'][2]})')")
     index+=1
     con1.commit()
@@ -178,6 +212,8 @@ def upload_data():
     view_orders()
 
 def select_start():
+    """Select where the starting location is
+    """
     global location_tree, order_data
     # loc_value = tree.set(a, column="loc")
 
@@ -203,6 +239,8 @@ def select_start():
     else:
         print("Please Select start pnt")
 def select_dropoff():
+    """Select drop off location
+    """
     global location_tree, order_data
     # loc_value = tree.set(a, column="loc")
 
@@ -228,14 +266,18 @@ def select_dropoff():
         print("Please Select end pnt")
 
 def clear_pickup_drop_off_pnt():
-        pickup_label.config(text=f"Pick spot position= ")
-        drop_off_label.config(text=f"Drop off position= ")
+    """Clear information for pick up and drop off points
+    """
+    pickup_label.config(text=f"Pick spot position= ")
+    drop_off_label.config(text=f"Drop off position= ")
 
-        order_data["end_data"]=None
-        order_data["start_data"]=None
-        order_data["vld_end"]=False
-        order_data["vld_start"]=False
+    order_data["end_data"]=None
+    order_data["start_data"]=None
+    order_data["vld_end"]=False
+    order_data["vld_start"]=False
 def add_pnt():
+    """Add a point selected on rviz into favorite points list
+    """
     con1 = sqlite3.connect(db_file_name)
     if(con1.execute(f"SELECT name FROM favorite_spots_tbl WHERE name NOT IN ('{pos_name_entry.get()}');")):
         con1.execute(f"INSERT INTO favorite_spots_tbl VALUES('{pos_name_entry.get()}','[{x_pos_entry.get()},{y_pos_entry.get()}]','{z_ang_entry.get()}')")
@@ -244,8 +286,10 @@ def add_pnt():
         view_locations()
     else:
         con1.close()
-        print("name already exists")
+        rospy.logwarn("name already exists")
 def delete_item():
+    """Delete a point in favorite spot tbl
+    """
     global location_tree
     # loc_value = tree.set(a, column="loc")
 
@@ -259,8 +303,7 @@ def delete_item():
     array_data=item_details.get("values")
     
     con1 = sqlite3.connect(db_file_name)
-    print(con1.total_changes)
-    print("uploading data")
+    rospy.logdebug("uploading data")
     cur1 = con1.cursor()
     cur1.execute(f"DELETE FROM favorite_spots_tbl WHERE name = '{array_data[0]}';")
     con1.commit()
@@ -269,6 +312,8 @@ def delete_item():
 
 
 def assign_orders():
+    """Assign a robot an order 
+    """
     global columns_in_db, robot_status
     find_robot_index=columns_in_db.index("robot_assigned")
     while not rospy.is_shutdown():
@@ -288,19 +333,33 @@ def send_data(start_pnt,end_pnt, robot_num):
     print("send data")
 # def tkinter_window():
 #     window.mainloop()
+
+# Create order db
 connect()
+
+#Register node with ros
 initialize_ros_node() 
+
+#main tkinter window
 window = tk.Tk()
+
+#frame with pick up from off info
 position_frame=tk.Frame(window)
+
+#Selecting point frame
 rviz_select_frame=tk.Frame(window)
+
+#Set up all items for ordering item
 order_name = tk.Label(window, text = "Current orders")
 order_name.pack()
 
+#Current orders tree view orders in process
 tree = ttk.Treeview(window, column=columns_in_db, show='headings')
 for number, item in enumerate(columns_in_db):
     tree.column(f"#{number+1}", anchor=tk.CENTER)
     tree.heading(f"#{number+1}", text=item)
 
+#Favorite locations tree
 tree.pack()
 favorite_locations = tk.Label(window, text = "Current orders")
 favorite_locations.pack()
@@ -314,12 +373,14 @@ location_tree.heading("#3", text="Location")
 location_tree.pack()
 view_locations()
 
+#Clear favorite point
 name = tk.Label(window, text = "Name")
 button1 = tk.Button(text="Display data", command=view_orders)
 button1.pack(pady=10)
 button4 = tk.Button(window, text="delete_pnt", command=delete_item)
 button4.pack(pady=10)
 
+#Entering order info
 name_item = tk.Label(window, text = "Name")
 name_item_entry=tk.Entry(window)
 name_item.pack()
@@ -363,6 +424,7 @@ position_frame.pack()
 button2 = tk.Button(text="upload Data", command=upload_data)
 button2.pack(pady=10)
 
+# Buttons related to selecting a point from rviz
 rviz_select_frame.pack()
 
 name_frame=tk.Frame(rviz_select_frame)
@@ -399,6 +461,7 @@ z_rviz_frame.pack()
 add_pnt_btn= tk.Button(text="add pnt to favorites", command=add_pnt)
 add_pnt_btn.pack(pady=10)
 
+#Thread to assign orders to robots
 thread = Thread(target = assign_orders)
 thread.start() # This code will execute in parallel to the current code
 

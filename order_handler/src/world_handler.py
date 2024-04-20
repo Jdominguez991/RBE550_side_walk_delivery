@@ -115,16 +115,18 @@ if vars_dict['spawn_world']:
     rospy.logdebug("world launched")
     rospy.sleep(10)
 
-
-
+#Define reo node launcher and ros file launchers
 node_launch = roslaunch.scriptapi.ROSLaunch()
 robot_launch = roslaunch.parent.ROSLaunchParent(uuid, [str((Path(__file__).resolve().parents[0]).joinpath(f"../launch/robot_spawner.launch"))])
 acml_launch = roslaunch.parent.ROSLaunchParent(uuid, [str((Path(__file__).resolve().parents[0]).joinpath(f"../launch/amcl.launch"))])
 
+#Spawn in the robot as well as start the acml launch for robot to localize
 if vars_dict['spawn_robot']:
     robot_launch.start()
     if vars_dict['spawn_acml']:
         acml_launch.start()
+
+# Start the map server
 if vars_dict['occu_grid']:
     node=roslaunch.core.Node("map_server", "map_server",args=f"{(Path(__file__).resolve().parents[0]).joinpath('../../maps/map1.yaml')}")
     node_launch.start()
@@ -144,6 +146,5 @@ with open(f'{os.path.dirname(os.path.abspath(__file__))}/conf.yaml','r') as f:
             node_launch.start()
             node_launch.launch(node)
 
+#Keep everything running until node is killed
 rospy.spin()
-# 3 seconds later
-# launch.shutdown()
