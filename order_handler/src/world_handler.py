@@ -93,6 +93,8 @@ parser = argparse.ArgumentParser(description ='Process some integers.')
 parser.add_argument('--spawn_world', help ='Should the file launch the world',type=bool,default=True)
 parser.add_argument('--world', help ='Which world launch file do you want to use', default="world.launch")
 parser.add_argument('--occu_grid',help="Should the occupancy grid be launched", type=bool, default=True)
+parser.add_argument('--spawn_robot',help="Should the occupancy grid be launched", type=bool, default=True)
+parser.add_argument('--spawn_acml',help="Should the occupancy grid be launched", type=bool, default=True)
 parser.add_argument('--spawn_drop_off', help ='Should the drop off locations be spawned', default=True)
 parser.add_argument('--spawn_pick_up', help ='Should the pickup locations be spawned', default=True)
 parser.add_argument('--max_spawn_trials', help ='The number of times the sim will try to spawn the item', default=5)
@@ -100,7 +102,7 @@ parser.add_argument('--node_name', help="define a custom name for the node", def
  
 args, unknown = parser.parse_known_args()
 vars_dict=vars(args)
-
+print(vars_dict)
 rospy.init_node(vars_dict['node_name'], log_level=rospy.DEBUG)
 
 #Spawn the world based on the world launch file 
@@ -116,7 +118,13 @@ if vars_dict['spawn_world']:
 
 
 node_launch = roslaunch.scriptapi.ROSLaunch()
+robot_launch = roslaunch.parent.ROSLaunchParent(uuid, [str((Path(__file__).resolve().parents[0]).joinpath(f"../launch/robot_spawner.launch"))])
+acml_launch = roslaunch.parent.ROSLaunchParent(uuid, [str((Path(__file__).resolve().parents[0]).joinpath(f"../launch/amcl.launch"))])
 
+if vars_dict['spawn_robot']:
+    robot_launch.start()
+    if vars_dict['spawn_acml']:
+        acml_launch.start()
 if vars_dict['occu_grid']:
     node=roslaunch.core.Node("map_server", "map_server",args=f"{(Path(__file__).resolve().parents[0]).joinpath('../../maps/map1.yaml')}")
     node_launch.start()

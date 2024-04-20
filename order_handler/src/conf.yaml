@@ -1,4 +1,7 @@
 num_robot: 1
+robot_info:
+    name: "robot1"
+    location: [5,8]
 drop_off_loc:
     -   depo1: 
         name: "drop1"

@@ -37,7 +37,7 @@ class Algorithms:
 
         # checkpoint parameters
         self.checkpoint_list = queue.LifoQueue()              # manual editing for now
-        test_point = [1241,1015]
+        # test_point = [1241,1015]
         self.building_checkpoint_graph =[]       # create list of building checkpoints
         self.inside_checkpoints = []        # create list of indoors checkpoints
        
@@ -96,9 +96,18 @@ class Algorithms:
                 break
             neighbors = self.find_neighbors(current_coord)
             
+            # condition to find shorter route without using queues
+            # first condition checks if start and goal have same node, if so then remove all from queue and just find goal
+            queue_list = list(self.checkpoint_list.queue)
+            if queue_list[0] == queue_list[1]:
+                first = self.checkpoint_list.get()
+                second = self.checkpoint_list.get()
+                checkpoint = self.goal
 
-            if self.euclid_distance(current_coord,checkpoint) <= 10:       # if planner reaches checkpoint, pop next checkpoint 
+            elif self.euclid_distance(current_coord,checkpoint) <= 10:       # if planner reaches checkpoint, pop next checkpoint 
                 checkpoint = self.checkpoint_list.get()
+            
+
 
             for n in neighbors:
                 # maybe include boundary check?

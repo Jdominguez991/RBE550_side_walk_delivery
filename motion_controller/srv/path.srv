@@ -1,0 +1,4 @@
+float32[2] start_point
+float32[2] end_point
+---
+point[] path
