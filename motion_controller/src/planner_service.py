@@ -10,7 +10,9 @@ def handle_add_two_ints(req):
     rospy.logdebug(f"Received starting points: {req.start_point}, ending point: {req.end_point}")
     # print("Returning [%s + %s = %s]"%(req.a, req.b, (req.a + req.b)))
     
-    rsp=pathResponse([point([1,2]),point([1,2])])
+    rsp=pathResponse([point([2,0]),point([7,0]),point([8,1]),
+                      point([9,0]),point([11,0]),point([13,0]),
+                      point([15,0]),point([15,-3]),point([15,-5])])
     #process path
     # rsp.path=[[1,2],[1,2]]
     rospy.logdebug(f"Found a path: {rsp}")
