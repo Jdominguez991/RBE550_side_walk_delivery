@@ -12,7 +12,7 @@ import queue
 
 
 class Algorithms:
-    def __init__(self, start, goal, width, height, grid, rand_area, expand_dis=0.5, goal_sample_rate=20, max_iter=2000):
+    def __init__(self, start, goal, width, height, grid, rand_area, step_size,expand_dis=0.5, goal_sample_rate=20, max_iter=2000):
         self.path = {}  # path that will be appended to, dictionary of {'algorithm type': path}
         self.start = start
         self.start[0]+=1000
@@ -22,7 +22,7 @@ class Algorithms:
         self.goal[1]+=1000
         self.occupancy_grid = grid              #  grid object contains 3 indices, 1st is 1D array, 2nd is
         self.accuracy_radius = 20       # specify how close to the target the planner should get       
-        
+        self.step_size = step_size
         # RRT search properties
         self.min_rand = rand_area[0]
         self.max_rand = rand_area[1]
@@ -54,7 +54,7 @@ class Algorithms:
     def find_neighbors(self, position):
         occupancy_values = {}
         # neighbor spacing, increase to increase algorithm step size
-        step_size = 5
+        step_size = self.step_size
         # this is currently (row,column) notation, not x and y
         neighbors = [[position[0] + step_size, position[1]],
                      [position[0] - step_size, position[1]],
@@ -79,7 +79,7 @@ class Algorithms:
         count = 0                                       # iteration counter for limit setting
         checkpoint = self.checkpoint_list.get()           # set first checkpoint
         while priority_queue:
-            rospy.logdebug(f"The current priority queue {priority_queue}")                              # is you set ROS to debug, then it prints
+            #rospy.logdebug(f"The current priority queue {priority_queue}")                              # is you set ROS to debug, then it prints
             current_distance, current_coord = heapq.heappop(priority_queue)
             path_tracker.append(current_coord)
             print(f'This is current position: {current_coord}')
@@ -99,10 +99,11 @@ class Algorithms:
             # condition to find shorter route without using queues
             # first condition checks if start and goal have same node, if so then remove all from queue and just find goal
             queue_list = list(self.checkpoint_list.queue)
-            if queue_list[0] == queue_list[1]:
-                first = self.checkpoint_list.get()
-                second = self.checkpoint_list.get()
-                checkpoint = self.goal
+            if len(queue_list) >=2:
+                if queue_list[0] == queue_list[1]:
+                    first = self.checkpoint_list.get()
+                    second = self.checkpoint_list.get()
+                    checkpoint = self.goal
 
             elif self.euclid_distance(current_coord,checkpoint) <= 10:       # if planner reaches checkpoint, pop next checkpoint 
                 checkpoint = self.checkpoint_list.get()
@@ -219,29 +220,29 @@ class Algorithms:
         end_node = self.min_key_finder(goal_node_costs)
         rospy.logdebug(f'This is the end node: {end_node}')
 
-        checkpoint_queue = queue.Queue()
-        checkpoint_queue.put(start_node)
+        search_queue = queue.Queue()
+        search_queue.put(start_node)
         visited = set()
         path=[]
-
+        new_path = list(path)  # Create a new path
         # BFS search
-        while checkpoint_queue:
+        while search_queue:
             
-            path.append(checkpoint_queue.get())
+            path.append(search_queue.get())
             node = path[-1]
-            if node not in visited:
+            node_tuple = tuple(node)
+            if node_tuple not in visited:
             
-                visited.add(node)
+                visited.add(node_tuple)
 
                 # Check if this node is the end node
-                if node == end_node:
+                if node_tuple == end_node:
                     return path  # Return the path if it reaches the end
 
                 # Enqueue neighbors of the current node
-                for neighbor in self.building_checkpoint_graph.get(node, []):
-                    new_path = list(path)  # Create a new path
+                for neighbor in self.building_checkpoint_graph.get(node_tuple, ()):
                     new_path.append(neighbor)
-                    checkpoint_queue.append(new_path)
+                    search_queue.put(neighbor)
         
         rospy.logfatal("jumped out of while loop error")
 
