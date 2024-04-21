@@ -21,6 +21,7 @@ class Algorithms:
         self.goal[0]+=1000
         self.goal[1]+=1000
         self.occupancy_grid = grid              #  grid object contains 3 indices, 1st is 1D array, 2nd is
+        print(self.start,self.goal)
         self.accuracy_radius = 20       # specify how close to the target the planner should get       
         self.step_size = step_size
         # RRT search properties

@@ -14,6 +14,7 @@ class MoveRobot():
     def __init__(self, velocity, rate):
         rospy.init_node('move_robot', anonymous=True)
         self.velocity_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+        self.pose_subscriber = rospy.Subscriber('/odom', Odometry, self.update_pose)
         self.goal_rotate_tolerance = 0.03
         self.goal_rotate_tolerance_check = 0.1
         self.goal_tolerance_linear = 0.35
@@ -69,7 +70,7 @@ class MoveRobot():
                 angle_to_next_goal = math.atan2(y - y_act, x - x_act)
 
                 print("Angles in",angle_to_next_goal,self.yaw,angle_to_next_goal - self.yaw)
-                while (abs(angle_to_next_goal - self.yaw) > self.goal_rotate_tolerance):
+                while (abs(angle_to_next_goal - self.yaw) > self.goal_rotate_tolerance) and (not rospy.is_shutdown()):
                     z_act = self.pose.pose.pose.orientation
                     _, _, self.yaw = euler_from_quaternion([z_act.x, z_act.y, z_act.z, z_act.w])
 
@@ -104,7 +105,7 @@ class MoveRobot():
             distance_to_goal = math.sqrt((x_diff)**2 + (y_diff)**2)
 
             rospy.loginfo("Driving to next spot...")
-            while True:
+            while True and (not rospy.is_shutdown()):
                 x_act = self.pose.pose.pose.position.x
                 y_act = self.pose.pose.pose.position.y
 
@@ -154,7 +155,6 @@ class MoveRobot():
     def update_pose(self, data):
         self.pose = data
 
-
     def get_current_position(self):
         return self.pose.pose.pose.position.x, self.pose.pose.pose.position.y, self.yaw
     
@@ -167,42 +167,37 @@ class MoveRobot():
         self.calculate_angle(goal_pose)
         self.linear_movement(goal_pose, index)
 
+    def update_pose_callback(data, move_robot_instance):
+        move_robot_instance.update_pose(data)
+        global pose_gl 
+        pose_gl = data
 
-def update_pose_callback(data, move_robot_instance):
-    move_robot_instance.update_pose(data)
-    global pose_gl 
-    pose_gl = data
-
-def make_service_request(start_point, end_point):
-    rospy.wait_for_service('path_planner')  # Wait for the service to become available
-    try:
-        service_client = rospy.ServiceProxy('path_planner', path)
-        request = pathRequest(start_point=start_point, end_point=end_point)
-        response = service_client(request)
-        return response.path
-    except rospy.ServiceException as e:
-        rospy.logerr("Service call failed: %s", e)
-        return None
+    def make_service_request(self,start_point, end_point):
+        rospy.wait_for_service('path_planner')  # Wait for the service to become available
+        try:
+            service_client = rospy.ServiceProxy('path_planner', path)
+            request = pathRequest(start_point=start_point, end_point=end_point)
+            response = service_client(request)
+            return response.path
+        except rospy.ServiceException as e:
+            rospy.logerr("Service call failed: %s", e)
+            return None
     
-if __name__ == '__main__':
-    try:
+    def move_robot(self, goal):
 
-        points = [[2.5, 0.0],[7.0, 0.0],[8,0.5],[9,0]]
-        velocity = 0.8
-        rate = 10
-
-        move_robot = MoveRobot(velocity, rate)  # Pass the rate to the constructor
-        move_robot.pose_subscriber = rospy.Subscriber('/odom', Odometry, lambda data: update_pose_callback(data, move_robot))
+        start_x,start_y,yaw = self.get_current_position()
         
         # Initialize previous goal pose as None
         next_goal_point = None
+        start_point = [start_x,start_y]
 
-        start_point = [2.5, 0.0]
-        end_point = [8, 0.5]
-        path = make_service_request(start_point, end_point)
+        path = self.make_service_request(start_point, goal)
 
         for i in range(len(path)):
-            
+            #If ros is shutdown exit function
+            if rospy.is_shutdown():
+                return
+
             point = [path[i].location[0], path[i].location[1]]
             next_point = path[i + 1] if i + 1 < len(path) else None
             
@@ -217,5 +212,10 @@ if __name__ == '__main__':
             move_robot.navigate_to_next_goal(point, next_goal_point,i) 
             print("##################################")
 
-    except rospy.ROSInterruptException:
-        pass
+
+if __name__ == '__main__':
+    end_point = [80, 50]
+    velocity = 0.8
+    rate = 10
+    move_robot = MoveRobot(velocity, rate)  # Pass the rate to the constructor
+    move_robot.move_robot(end_point)
