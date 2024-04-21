@@ -79,20 +79,20 @@ class algo_service:
 
         rate = rospy.Rate(15)
 
-        # initialize path planning object
+       # initialize path planning object
         dimension = len(arr)                                                 # occupancy grid is square
+        # dimension=1984
         rand_area = [1,2]                                                              # for RRT later
-        rospy.loginfo(start_pnt)
-        rospy.loginfo(end_pnt)
-        robot_planner = algorithms.Algorithms([start_pnt[0],start_pnt[1]],[end_pnt[0],end_pnt[1]],dimension,dimension,list(rotated_array), rand_area)    # create path planning object
-
+        step_size = 1
+        robot_planner = algorithms.Algorithms([start_pnt[0],start_pnt[1]],[end_pnt[0],end_pnt[1]],dimension,dimension,list(rotated_array), rand_area,step_size)    # create path planning object
+        
         # checkpoint testing
         check_order = robot_planner.checkpoint_order()
         print(f'These are the checkpoints: {check_order}')               # print the checkpoint list
         print(f'This is the checkpoint order')
 
         robot_planner.a_star()                                                       # call a_star method, no expected return
-        # print(f"This is the A_star path: {robot_planner.path['A_star']}")     
+        # print(f"This is the A_star path: {robot_planner.path['A_star']}")                           # access A_star key to display path
 
         path_array=[]
         print('Sending A* to rviz')
