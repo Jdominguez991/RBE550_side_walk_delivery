@@ -21,6 +21,7 @@ class Algorithms:
         self.goal[0]+=1000
         self.goal[1]+=1000
         self.occupancy_grid = grid              #  grid object contains 3 indices, 1st is 1D array, 2nd is
+        print(self.start,self.goal)
         self.accuracy_radius = 20       # specify how close to the target the planner should get       
         
         # RRT search properties
@@ -221,7 +222,7 @@ class Algorithms:
 
         checkpoint_queue = queue.Queue()
         checkpoint_queue.put(start_node)
-        visited = set()
+        visited = []
         path=[]
 
         # BFS search
@@ -231,7 +232,7 @@ class Algorithms:
             node = path[-1]
             if node not in visited:
             
-                visited.add(node)
+                visited.append(node)
 
                 # Check if this node is the end node
                 if node == end_node:
@@ -241,8 +242,8 @@ class Algorithms:
                 for neighbor in self.building_checkpoint_graph.get(node, []):
                     new_path = list(path)  # Create a new path
                     new_path.append(neighbor)
-                    checkpoint_queue.append(new_path)
-        
+                    checkpoint_queue.put(new_path)
+            rospy.loginfo(node)
         rospy.logfatal("jumped out of while loop error")
 
         # stack nodes into checkpoint FIFO queue
