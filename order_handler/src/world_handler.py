@@ -5,7 +5,7 @@ import yaml
 import gazebo_msgs
 import geometry_msgs
 from gazebo_msgs.srv import SpawnModelRequest, SpawnModel
-from scipy.spatial.transform import Rotation
+
 from geometry_msgs.msg import Point, Pose, Quaternion
 import roslaunch
 import rospy
