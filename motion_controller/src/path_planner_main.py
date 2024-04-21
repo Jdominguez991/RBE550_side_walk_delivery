@@ -163,7 +163,8 @@ if __name__ == "__main__":
     # initialize path planning object
     dimension = len(arr)                                                 # occupancy grid is square
     rand_area = [1,2]                                                              # for RRT later
-    robot_planner = algorithms.Algorithms(start,goal,dimension,dimension,list(rotated_array), rand_area)    # create path planning object
+    step_size = 3
+    robot_planner = algorithms.Algorithms(start,goal,dimension,dimension,list(rotated_array), rand_area,step_size)    # create path planning object
     
     # checkpoint testing
     check_order = robot_planner.checkpoint_order()
