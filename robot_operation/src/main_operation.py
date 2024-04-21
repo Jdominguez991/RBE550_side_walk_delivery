@@ -131,11 +131,11 @@ class current_order_status(SingletonClass):
         self.reset_states()
 
         # put the quantity of each item into dictionary and say now of the items are picked
-        if(r>0):
+        if(r>=0):
             self.object_info["red"][0]=[r,False]
-        if(g>0):
+        if(g>=0):
             self.object_info["green"][0]=[g,False]
-        if(b>0):
+        if(b>=0):
             self.object_info["blue"][0]=[b,False]
 
         # Split string of input to x and y pos and put into end position
