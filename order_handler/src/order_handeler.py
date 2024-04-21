@@ -15,6 +15,7 @@ import queue
 from symbol import import_as_name
 from collections import deque as queue
 import time
+import re
 from typing import final
 import sys
 import rospy
@@ -26,7 +27,7 @@ from nav_msgs.msg import GridCells, OccupancyGrid, Path
 from geometry_msgs.msg import Point, Pose, PoseStamped, PoseWithCovarianceStamped, Quaternion
 from tf.transformations import quaternion_from_euler
 from std_msgs.msg import Bool, String
-
+from robot_operation.srv import send_order
 
 # install tkinter sudo apt-get install python3-tk
 # pip3 install numpy scipy matplotlib ipython jupyter pandas sympy nose
@@ -68,11 +69,13 @@ def initialize_ros_node():
     for num in range(len(robots)):
         robots[num] = [rospy.Publisher(f'/robot{num}/start', Pose, queue_size=10), rospy.Publisher(f'/robot{num}/end', Pose, queue_size=10)] #msg or type []
     status_functions=[create_status_func(i) for i in range(len(robots))]
+
+    robot_status.append("NOT_AVAIL")
     # Make subscribers for the current status of robots
-    for num in range(len(robots)):
-        rospy.Subscriber(f'/robot{num}/current_status', String, status_functions[num])
-        robot_status.append("NOT AVAIL")
- 
+    # for num in range(len(robots)):
+    #     robot_status.append(rospy.Subscriber(f'/robot{num}/current_status', String, status_functions[num]))
+    
+    rospy.Subscriber(f'/robot1/current_status', String, update_status)
 def euler_from_quaternion(x, y, z, w):
         """
         Convert a quaternion into euler angles (roll, pitch, yaw)
@@ -140,7 +143,16 @@ def create_status_func(robot_num):
         global robot_status
         robot_status[robot_num]=data.data #should be of string type
     return update_status
-        
+
+def update_status(data):
+    """Update the global status of the robot
+
+    Args:
+        data (str): msg with information of status of that robot
+    """
+    global robot_status
+    robot_status[0]=data.data #should be of string type
+    
     
 def connect():
     """Create data base file to handle orders
@@ -238,6 +250,7 @@ def select_start():
         pickup_label.config(text=f"Pick spot position= {array_data[1]}")
     else:
         print("Please Select start pnt")
+
 def select_dropoff():
     """Select drop off location
     """
@@ -310,32 +323,53 @@ def delete_item():
     con1.close()
     view_locations()
 
+def send_order_data(num_red, num_blue, num_green, end_pnt, robot_num):
+    split_location=end_pnt.split(',')
 
+    item=re.findall(r"\d+", end_pnt)
+    # item=[int(i) for i in end_pnt.split(',') if i.isdigit()]
+    rospy.loginfo(num_red)
+
+    rospy.loginfo("num red")
+
+    rospy.wait_for_service(f'robot{robot_num+1}/receive_order')
+    try:
+        add_two_ints = rospy.ServiceProxy(f'robot{robot_num+1}/receive_order', send_order)
+        resp1 = add_two_ints(int(num_red), int(num_green), int(num_blue), f'[{item[0]},{item[1]}]')
+        if not resp1.received:
+            rospy.logerr("service not received")
+    except rospy.ServiceException as e:
+        rospy.logerr("Service call failed: %s"%e)
+    sys.exit(0)
 def assign_orders():
     """Assign a robot an order 
     """
     global columns_in_db, robot_status
     find_robot_index=columns_in_db.index("robot_assigned")
+    rospy.loginfo(robot_status)
     while not rospy.is_shutdown():
+        # rospy.loginfo("in while")
         con1 = sqlite3.connect(db_file_name)
         cur1 = con1.cursor()
         cur1.execute("SELECT * FROM order_tbl")
         rows = cur1.fetchall()  
         cur1.close()
         for robot_num, status in enumerate(robot_status):
-            if status.upper()=="WAITING":
+            rospy.logdebug(f"looking robot, current stat: {status.upper()}")
+            if status.upper()=="WAITING_ORDER":
+                rospy.loginfo("found bot")
                 if(len(rows)>0):
                     for row in rows:
                         if (row[find_robot_index]=="NOT ASSIGNED"):
-                            send_data(row[columns_in_db.index("pickup_pnt")],row[columns_in_db.index("end_pnt")], robot_num)
-        
-def send_data(start_pnt,end_pnt, robot_num):
-    print("send data")
+                            rospy.loginfo(row[columns_in_db.index("pickup_pnt")])
+                            send_order_data(row[columns_in_db.index("num_items_r")],row[columns_in_db.index("num_items_b")],row[columns_in_db.index("num_items_g")],row[columns_in_db.index("end_pnt")], robot_num)
+        rospy.sleep(.1)
+
 # def tkinter_window():
 #     window.mainloop()
 
 # Create order db
-connect()
+# connect()
 
 #Register node with ros
 initialize_ros_node() 

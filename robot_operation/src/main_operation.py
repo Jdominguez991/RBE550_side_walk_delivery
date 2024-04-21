@@ -12,6 +12,8 @@ from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Vector3
 from std_srvs.srv import SetBool,SetBoolResponse,SetBoolRequest, Trigger, TriggerResponse
 import time
 import move_base.move_base as move_base
+import re
+import sys
 
 class SingletonClass(object):
     """A class to define a class to be singleton
@@ -43,15 +45,13 @@ class main_states(StateMachine):
     Args:
         StateMachine (_type_): The class that it should be extend from
     """
-    waiting_acml_lock = State(initial=True)
-    waiting_order = State()
+    waiting_order = State(initial=True)
     picking_up_items = State()
     moving_to_drop_off = State()
     moving_back_home = State()
-    acml_item=acml()
+
     step = (
-        waiting_acml_lock.to(waiting_order, cond="is_localized")
-        | waiting_order.to(picking_up_items)
+        waiting_order.to(picking_up_items)
         | picking_up_items.to(moving_to_drop_off)
         | moving_to_drop_off.to(moving_back_home)
         | moving_back_home.to(waiting_order)
@@ -70,15 +70,8 @@ class main_states(StateMachine):
         """
 
         # message = ". " + message if message else ""
-        return f"Running {event} from {source.id} to {target.id}"
+        rospy.loginfo(f"Running {event} from {source.id} to {target.id}")
 
-    def is_localized(self):
-        """Find if the robot is localized
-
-        Returns:
-            _type_: If the robot is localized
-        """
-        return self.acml_item.is_localized()
 
 class current_order_status(SingletonClass):
     """Class to handle how the ordering should be handled 
@@ -146,7 +139,8 @@ class current_order_status(SingletonClass):
             self.object_info["blue"][0]=[b,False]
 
         # Split string of input to x and y pos and put into end position
-        split_location=location.split(",")
+        split_location=re.findall(r"\d+", location)
+        print(split_location)
         self.end_location=[int(split_location[0]),int(split_location[1])]
 
         # make array of points to visited
@@ -162,11 +156,12 @@ class current_order_status(SingletonClass):
 
         # go through each color to see if robot needs to pick up item
         for item_num,info in enumerate(self.object_info):
-            if info[0] > 0:
+            rospy.loginfo(self.object_info[info][0][0])
+            if self.object_info[info][0][0] > 0:
                 if item_num==0:
-                    self.desired_points.append([info[2],1])
+                    self.desired_points.append([self.object_info[info][2],1])
                 else:
-                    self.desired_points.append([info[2],0])
+                    self.desired_points.append([self.object_info[info][2],0])
 
         # Add end location as well as add the home position
         self.desired_points.append([self.end_location,1])
@@ -182,9 +177,13 @@ class current_order_status(SingletonClass):
         self.desired_points.pop(0)
 
         #   Check if there if the value outside of coordinate says go to next state
-        if self.desired_points[0][1]:
+        try:
+            if self.desired_points[0][1]:
+                self.current_robot_state.step()
+            return self.desired_points[0][0]
+        except:
             self.current_robot_state.step()
-        return self.desired_points[0][0]
+            return None
     
     def current_goal(self):
         """The current goal the robot should drive to
@@ -210,7 +209,7 @@ class current_order_status(SingletonClass):
         """
         return self.current_robot_state.current_state.id
 
-class ros_class(SingletonClass):
+class ros_class:
     order_info=current_order_status()
 
     def received_order(self,data):
@@ -227,67 +226,39 @@ class ros_class(SingletonClass):
         return send_orderResponse(True)
     
     #Keep sending robot status for any one that wants it
-    def keep_sending_status(self):
+    def keep_sending_status(self,event=None):
         """Publish the current robot status over the publisher current status for as long as the sim is running
         """
-        rate = rospy.Rate(15)
-        while not rospy.is_shutdown():
-            self.status.publish(self.order_info.current_state())
-            rate.sleep()
-    
+
+        rospy.logdebug(f"publishing state: {self.order_info.current_state().upper()}")
+        self.status.publish(self.order_info.current_state().upper())
     def __init__(self):
         """What to do when starting this class
         """
-        rospy.init_node("robot_main")
+        
         # Define service for getting new information for order
         self.s = rospy.Service('robot1/receive_order', send_order, self.received_order)
         # Publisher to send current status of the robot of what it is doing
         self.status = rospy.Publisher('robot1/current_status', String, queue_size=10)
         # self.send_velocity_info = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
-        # Thread the function to say the current status of the robot so that the status can always be known
-        self.thread = Thread(target = self.keep_sending_status)
-        self.thread.start() # This code will execute in parallel to the current code
+        # rospy.Timer(rospy.Duration(.1), self.keep_sending_status)
 
-    def kill_node(self):
-        """Stop the thread 
-        """
-        self.thread.join
-
-    # def send_new_velocity(self, forward_vel, angular_vel):
-
-    #     msg=Twist()
-    #     linear_vel=Vector3()
-    #     linear_vel.x=forward_vel
-    #     linear_vel.y=0
-    #     linear_vel.z=0
-
-    #     angular_vel=Vector3()
-    #     angular_vel.x=0
-    #     angular_vel.y=0
-    #     angular_vel.z=angular_vel
-
-    #     msg.linear=linear_vel
-    #     msg.angular=angular_vel
-    #     self.send_velocity_info.publish(msg)
-    # def ask_new_product(self):
-
-    #     rospy.loginfo("ask new product")
-    #     return True
     def main_code(self):
         """main code to operate the robot for it to pick up the needed items
         """
-        current_state=self.order_info.current_state()
+        rate = rospy.Rate(15)
         while not rospy.is_shutdown():
+            current_state=self.order_info.current_state()
+            rospy.logdebug("in main while")
             if current_state=="picking_up_items":
+                rospy.loginfo("picking up items")
                 desired_goal=self.order_info.current_goal()
+                rospy.loginfo(desired_goal)
                 #------------------move_to_goal------------------------
+                
                 
                 self.order_info.new_point()
                 #
-                while(True):
-                    if self.ask_new_point():
-                        break
-                    time.sleep(1)
             elif current_state=="moving_to_drop_off":
                 desired_goal=self.order_info.current_goal()
                 #------------------move_to_goal------------------------
@@ -296,9 +267,13 @@ class ros_class(SingletonClass):
                 desired_goal=self.order_info.current_goal()
                 #------------------move_to_goal------------------------
                 self.order_info.new_point()
+            rospy.sleep(.1)
 ########################################################################################
-ros=ros_class()
-ros.main_code()
-ros.kill_node()
+if __name__ == '__main__':
+    rospy.init_node("robot_main", log_level=rospy.INFO)
+    item=ros_class()
+    rospy.Timer(rospy.Duration(.1), item.keep_sending_status)
+    item.main_code()
+
 
 
