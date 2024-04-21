@@ -79,7 +79,7 @@ class Algorithms:
         count = 0                                       # iteration counter for limit setting
         checkpoint = self.checkpoint_list.get()           # set first checkpoint
         while priority_queue:
-            rospy.logdebug(f"The current priority queue {priority_queue}")                              # is you set ROS to debug, then it prints
+            #rospy.logdebug(f"The current priority queue {priority_queue}")                              # is you set ROS to debug, then it prints
             current_distance, current_coord = heapq.heappop(priority_queue)
             path_tracker.append(current_coord)
             print(f'This is current position: {current_coord}')
@@ -224,7 +224,7 @@ class Algorithms:
         search_queue.put(start_node)
         visited = set()
         path=[]
-
+        new_path = list(path)  # Create a new path
         # BFS search
         while search_queue:
             
@@ -240,10 +240,9 @@ class Algorithms:
                     return path  # Return the path if it reaches the end
 
                 # Enqueue neighbors of the current node
-                for neighbor in self.building_checkpoint_graph.get(node_tuple, []):
-                    new_path = list(path)  # Create a new path
+                for neighbor in self.building_checkpoint_graph.get(node_tuple, ()):
                     new_path.append(neighbor)
-                    search_queue.put(new_path)
+                    search_queue.put(neighbor)
         
         rospy.logfatal("jumped out of while loop error")
 

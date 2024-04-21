@@ -7,7 +7,7 @@ from gazebo_msgs.srv import GetModelStateRequest, GetModelState,GetModelProperti
 from geometry_msgs.msg import Point, Pose, PoseStamped, PoseWithCovarianceStamped, Quaternion
 from nav_msgs.msg import GridCells
 import numpy 
-import cv2
+# import cv2
 import sys
 from scipy import ndimage
 start_location={"x":0,"y":0,"angle":0}
@@ -84,20 +84,20 @@ if __name__ == "__main__":
     rotated_array=numpy.rot90(arr)
     rotated_array=numpy.flip(rotated_array,0)
     
-    convert_values=rotated_array
-    convert_values[convert_values<0] = 0
+    # convert_values=rotated_array
+    # convert_values[convert_values<0] = 0
 
-    # Taking a matrix of size 5 as the kernel 
-    kernel = numpy.ones((5, 5), numpy.uint8)
-    struct1 = ndimage.generate_binary_structure(2, 1)
-    convert_values=ndimage.binary_dilation(convert_values, structure=struct1,iterations=2).astype(convert_values.dtype)
-    # rotated_array = cv2.dilate(rotated_array, kernel, iterations=1)  
+    # # Taking a matrix of size 5 as the kernel 
+    # kernel = numpy.ones((5, 5), numpy.uint8)
+    # struct1 = ndimage.generate_binary_structure(2, 1)
+    # convert_values=ndimage.binary_dilation(convert_values, structure=struct1,iterations=2).astype(convert_values.dtype)
+    # # rotated_array = cv2.dilate(rotated_array, kernel, iterations=1)  
 
-    copy_original_map=rotated_array
-    for iy, ix in numpy.ndindex(convert_values.shape):
-        if convert_values[iy,ix]==1 and not copy_original_map[iy,ix]==1:
-            rotated_array[iy,ix]=.7
-
+    # copy_original_map=rotated_array
+    # for iy, ix in numpy.ndindex(convert_values.shape):
+    #     if convert_values[iy,ix]==1 and not copy_original_map[iy,ix]==1:
+    #         rotated_array[iy,ix]=.7
+    #     rospy.loginfo("in for loop")
 
     rate = rospy.Rate(15)
 
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     goal = [end_location["x"],end_location["y"]]                                   # currently arbitrary, ust change to whatever the server is asking for based on next item in the list
     
     # start=[0,0]
-    # goal=[50,50]
+    # goal=[200,200]
 
     
 
@@ -162,8 +162,9 @@ if __name__ == "__main__":
 
     # initialize path planning object
     dimension = len(arr)                                                 # occupancy grid is square
+    # dimension=1984
     rand_area = [1,2]                                                              # for RRT later
-    step_size = 3
+    step_size = 1
     robot_planner = algorithms.Algorithms(start,goal,dimension,dimension,list(rotated_array), rand_area,step_size)    # create path planning object
     
     # checkpoint testing
