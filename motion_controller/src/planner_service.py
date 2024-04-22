@@ -17,11 +17,21 @@ import sys
 from scipy import ndimage
 
 class algo_service:
+    def convert_pnt_real_wld(self,pnt):
+        global start_location, given_coor
+        new_pnt=[None,None]
+        new_pnt[0]=int(pnt[0]/.05)
+        new_pnt[1]=int(pnt[1]/.05)
+    
+        # print(start_location)
+        rospy.loginfo(f"coordinates:{new_pnt}")
+        return new_pnt
+    
     def handle_add_two_ints(self,req):
-        start_pnt=req.start_point
-        end_pnt=req.end_point
+        start_pnt=self.convert_pnt_real_wld(req.start_point)
+        end_pnt=self.convert_pnt_real_wld(req.end_point)
         print(end_pnt)
-        rospy.logdebug(f"Received starting points: {req.start_point}, ending point: {req.end_point}")
+        rospy.logdebug(f"Received starting points: {start_pnt}, ending point: {end_pnt}")
         # print("Returning [%s + %s = %s]"%(req.a, req.b, (req.a + req.b)))
         
         print("getting map")
@@ -55,7 +65,7 @@ class algo_service:
         copy_original_map=rotated_array
         for iy, ix in numpy.ndindex(convert_values.shape):
             if convert_values[iy,ix]==1 and not copy_original_map[iy,ix]==1:
-                rotated_array[iy,ix]=.7
+                rotated_array[iy,ix]=1
 
         start_end_pnt=[]
         highlight=Point()
@@ -130,7 +140,7 @@ class algo_service:
         return rsp
  
     def __init__(self):
-        rospy.init_node('planner_server')
+        rospy.init_node('planner_server', log_level=rospy.DEBUG)
         self.s = rospy.Service('path_planner', path, self.handle_add_two_ints)
         self.cSpacePub = rospy.Publisher('/resulting_path', GridCells, queue_size=10)
         self.start_end_pntPub = rospy.Publisher('/start_end_pnt', GridCells, queue_size=10)

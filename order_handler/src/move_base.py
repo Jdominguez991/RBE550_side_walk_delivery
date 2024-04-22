@@ -214,7 +214,7 @@ class MoveRobot():
 
 
 if __name__ == '__main__':
-    end_point = [80, 50]
+    end_point = [8, 5]
     velocity = 0.8
     rate = 10
     move_robot = MoveRobot(velocity, rate)  # Pass the rate to the constructor

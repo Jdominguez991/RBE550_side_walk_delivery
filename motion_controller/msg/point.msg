@@ -1,1 +1,1 @@
-int16[] location
+float32[] location
