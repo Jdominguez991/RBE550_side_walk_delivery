@@ -59,7 +59,7 @@ class algo_service:
         # Taking a matrix of size 5 as the kernel 
         kernel = numpy.ones((5, 5), numpy.uint8)
         struct1 = ndimage.generate_binary_structure(2, 1)
-        convert_values=ndimage.binary_dilation(convert_values, structure=struct1,iterations=2).astype(convert_values.dtype)
+        convert_values=ndimage.binary_dilation(convert_values, structure=struct1,iterations=10).astype(convert_values.dtype)
         # rotated_array = cv2.dilate(rotated_array, kernel, iterations=1)  
 
         copy_original_map=rotated_array
@@ -93,7 +93,7 @@ class algo_service:
         dimension = len(arr)                                                 # occupancy grid is square
         # dimension=1984
         rand_area = [1,2]                                                              # for RRT later
-        step_size = 1
+        step_size = 5
         robot_planner = algorithms.Algorithms([start_pnt[0],start_pnt[1]],[end_pnt[0],end_pnt[1]],dimension,dimension,list(rotated_array), rand_area,step_size)    # create path planning object
         
         # checkpoint testing
@@ -135,6 +135,7 @@ class algo_service:
         #                 point([15,0]),point([15,-3]),point([15,-5])])
         #process path
         # rsp.path=[[1,2],[1,2]]
+        resp_array.append(point(req.end_point))
         rsp=pathResponse(resp_array)
         rospy.loginfo(f"Found a path: {rsp}")
         return rsp

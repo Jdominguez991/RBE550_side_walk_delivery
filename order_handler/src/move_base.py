@@ -8,7 +8,7 @@ from tf.transformations import euler_from_quaternion
 from tf.transformations import quaternion_from_euler
 from motion_controller.srv import path, pathRequest
 
-
+import sys
 pose_gl = Odometry()
 
 class MoveRobot():
@@ -16,7 +16,8 @@ class MoveRobot():
         rospy.init_node('move_robot', anonymous=True)
         self.velocity_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.pose_subscriber = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.update_pose)
-        self.goal_rotate_tolerance = 0.03
+        self.pose_odom = rospy.Subscriber('/odom', Odometry, self.current_angle)
+        self.goal_rotate_tolerance = 0.25 #rad
         self.goal_rotate_tolerance_check = 0.1
         self.goal_tolerance_linear = 0.35
         self.position_tolerance_linear = 0.35
@@ -24,9 +25,14 @@ class MoveRobot():
         self.pose = Odometry()
         self.rate = rospy.Rate(rate)  # Set the rate based on the argument
         self.velocity = velocity
+        self.ang_velocity = 0.2
         self.yaw = 0
         self.next_straight = False
 
+    def current_angle(self,data):
+        odom_angle=data.pose.pose.orientation
+        _, _, self.odom_angle = euler_from_quaternion([odom_angle.x, odom_angle.y, odom_angle.z, odom_angle.w])
+        
     def next_point(self, goal_pose, next_point):
         x_goal = goal_pose.pose.position.x
         y_goal = goal_pose.pose.position.y
@@ -62,6 +68,8 @@ class MoveRobot():
                 x_act = self.pose.pose.pose.position.x
                 y_act = self.pose.pose.pose.position.y
                 z_act = self.pose.pose.pose.orientation
+
+                current_angle=self.odom_angle
                     
                 _, _, self.yaw = euler_from_quaternion([z_act.x, z_act.y, z_act.z, z_act.w])
 
@@ -69,21 +77,44 @@ class MoveRobot():
                 y = goal_pose.pose.position.y
             
                 angle_to_next_goal = math.atan2(y - y_act, x - x_act)
+                rospy.loginfo(angle_to_next_goal)
 
                 print("Angles in",angle_to_next_goal,self.yaw,angle_to_next_goal - self.yaw)
-                while (abs(angle_to_next_goal - self.yaw) > self.goal_rotate_tolerance) and (not rospy.is_shutdown()):
+                while (abs(angle_to_next_goal - current_angle) > self.goal_rotate_tolerance) and (not rospy.is_shutdown()):
+                    
                     z_act = self.pose.pose.pose.orientation
                     _, _, self.yaw = euler_from_quaternion([z_act.x, z_act.y, z_act.z, z_act.w])
-
+                    
+                    rospy.loginfo(abs(angle_to_next_goal - self.yaw))
                     # Calculate angular velocity to rotate towards the next goal point
-                    angular_velocity = (angle_to_next_goal - self.yaw) * self.velocity
+                    angular_velocity = (angle_to_next_goal - self.yaw) * self.ang_velocity
+                    if angular_velocity > self.ang_velocity:
+                        angular_velocity = self.ang_velocity
 
                     # Create Twist message to rotate the robot
                     self.twist_msg.angular.z = angular_velocity
                     self.velocity_publisher.publish(self.twist_msg)
 
-                twist_msg_stop = Twist()
-                self.velocity_publisher.publish(twist_msg_stop)  # Stop the robot
+                    current_angle = self.odom_angle
+                    # rospy.loginfo(self.odom_angle)
+                    # while((abs(current_angle-self.odom_angle)<(angle_to_next_goal - self.yaw)-.05) and
+                    #       (not rospy.is_shutdown() )):
+                    #     rospy.loginfo(f"current_angle diff: {abs(current_angle-self.odom_angle)}")
+                    #     rospy.sleep(0.03)
+                    # self.stop_robot()
+                    # break
+                    
+                    # z_act = self.pose.pose.pose.orientation
+                    # _, _, self.yaw = euler_from_quaternion([z_act.x, z_act.y, z_act.z, z_act.w])
+                    # while(self.yaw==old_angle and (not rospy.is_shutdown())):
+                    #     z_act = self.pose.pose.pose.orientation
+                    #     _, _, self.yaw = euler_from_quaternion([z_act.x, z_act.y, z_act.z, z_act.w])
+                    #     rospy.loginfo("waiting new amcl")
+                    #     rospy.sleep(0.03)
+
+                
+                self.twist_msg.angular.z = 0
+                self.velocity_publisher.publish(self.twist_msg)  # Stop the robot
                 print("Angles out",angle_to_next_goal,self.yaw,angle_to_next_goal - self.yaw)
                 rospy.loginfo(f"Angle riched!!!")
             else:
@@ -131,7 +162,10 @@ class MoveRobot():
                 self.twist_msg.linear.x = vel
                 self.twist_msg.linear.y = vel
                 self.twist_msg.linear.z = 0
-                self.twist_msg.angular.z = angular_velocity
+                #if (abs(angle_to_goal - self.yaw) > self.goal_rotate_tolerance):
+                #    self.twist_msg.angular.z = angular_velocity
+                #else:
+                    #self.twist_msg.angular.z = 0
                 self.velocity_publisher.publish(self.twist_msg)
 
                 # Check if the robot is close to the goal position
@@ -156,6 +190,13 @@ class MoveRobot():
     def update_pose(self, data):
         self.pose = data
 
+    def stop_robot(self):
+        self.twist_msg.linear.x = 0
+        self.twist_msg.linear.y = 0
+        self.twist_msg.angular.z = 0
+        self.twist_msg.angular.z = 0
+        self.velocity_publisher.publish(self.twist_msg)
+        
     def get_current_position(self):
         return self.pose.pose.pose.position.x, self.pose.pose.pose.position.y, self.yaw
     
@@ -193,30 +234,43 @@ class MoveRobot():
         start_point = [start_x,start_y]
 
         path = self.make_service_request(start_point, goal)
+        j = 0
 
-        for i in range(len(path)):
-            #If ros is shutdown exit function
-            if rospy.is_shutdown():
-                return
+        while True:   
+            for i in range(len(path)):
+                #If ros is shutdown exit function
+                if rospy.is_shutdown():
+                    return
 
-            point = [path[i].location[0], path[i].location[1]]
-            next_point = path[i + 1] if i + 1 < len(path) else None
+                point = [path[i].location[0], path[i].location[1]]
+                next_point = path[i + 1] if i + 1 < len(path) else None
+                
+                if(next_point):
+                # Update the previous goal pose
+                    next_goal_point = PoseStamped()
+                    next_goal_point.pose.position.x = next_point.location[0]
+                    next_goal_point.pose.position.y = next_point.location[1]
+                else:
+                    next_goal_point = None
+                # Navigate to the next goal, passing the previous goal pose
+                move_robot.navigate_to_next_goal(point, next_goal_point,i) 
+                print("##################################")
+                if(i == 10):
+                    break
             
-            if(next_point):
-            # Update the previous goal pose
-                next_goal_point = PoseStamped()
-                next_goal_point.pose.position.x = next_point.location[0]
-                next_goal_point.pose.position.y = next_point.location[1]
-            else:
-                next_goal_point = None
-            # Navigate to the next goal, passing the previous goal pose
-            move_robot.navigate_to_next_goal(point, next_goal_point,i) 
-            print("##################################")
+            self.stop_robot()
+            curr_x, curr_y,_ = self.get_current_position()
+            start_point = [curr_x,curr_x]
+            if((abs(goal[0]-curr_x) < self.goal_tolerance_linear) and 
+               (abs(goal[1]-curr_y) < self.goal_tolerance_linear)):
+                break
+            path = self.make_service_request(start_point, goal)
+            
 
 
 if __name__ == '__main__':
-    end_point = [8, 5]
-    velocity = 0.8
+    end_point = [4, 3]
+    velocity = 0.5
     rate = 10
     move_robot = MoveRobot(velocity, rate)  # Pass the rate to the constructor
     move_robot.move_robot(end_point)
