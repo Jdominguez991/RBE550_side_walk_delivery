@@ -2,11 +2,12 @@
 import rospy
 import math
 import tf
-from geometry_msgs.msg import Twist, PoseStamped, Point
+from geometry_msgs.msg import Twist, PoseStamped, Point, PoseWithCovarianceStamped
 from nav_msgs.msg import Odometry
 from tf.transformations import euler_from_quaternion
 from tf.transformations import quaternion_from_euler
 from motion_controller.srv import path, pathRequest
+
 
 pose_gl = Odometry()
 
@@ -14,7 +15,7 @@ class MoveRobot():
     def __init__(self, velocity, rate):
         rospy.init_node('move_robot', anonymous=True)
         self.velocity_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
-        self.pose_subscriber = rospy.Subscriber('/odom', Odometry, self.update_pose)
+        self.pose_subscriber = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.update_pose)
         self.goal_rotate_tolerance = 0.03
         self.goal_rotate_tolerance_check = 0.1
         self.goal_tolerance_linear = 0.35
