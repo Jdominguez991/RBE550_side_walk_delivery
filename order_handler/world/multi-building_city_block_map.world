@@ -8544,7 +8544,7 @@
       <pose>-10.3836 -20.0659 0 0 -0 0</pose>
     </model>
 
-
+<!--
     <actor name="actor_walking">
       <skin>
         <filename>https://fuel.gazebosim.org/1.0/Mingfei/models/actor/tip/files/meshes/walk.dae</filename>
@@ -8801,6 +8801,6 @@
           </waypoint>
         </trajectory>
       </script>
-    </actor>
+    </actor>-->
   </world>
 </sdf>
