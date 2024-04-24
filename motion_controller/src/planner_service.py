@@ -66,6 +66,29 @@ class algo_service:
         # checkpoint testing
         check_order = robot_planner.checkpoint_order()
         print(f'These are the checkpoints: {check_order}')               # print the checkpoint list
+      
+        path_array=[]
+        print('Sending A* to rviz')
+        for value in check_order:
+            print(value)                        # print path
+            #Display points that it has visited
+            highlight=Point()
+            highlight.x=(value[0]-1000)*.05+.025         # translate from grid space coordinate to world space coordinate
+            highlight.y=(value[1]-1000)*.05+.025
+            highlight.z=0
+            path_array.append(highlight)
+
+            grid_cells_msg = GridCells()
+            grid_cells_msg.cell_width = self.grid[3]
+            grid_cells_msg.cell_height = self.grid[3]
+            grid_cells_msg.cells = path_array
+            grid_cells_msg.header.frame_id = "map"
+            self.start_end_pntPub.publish(grid_cells_msg)
+        
+        for w in range(1,5):
+            self.start_end_pntPub.publish(grid_cells_msg)
+            rate.sleep()
+      
         print(f'This is the checkpoint order')
 
         robot_planner.a_star()                                                       # call a_star method, no expected return
@@ -109,7 +132,6 @@ class algo_service:
  
     def __init__(self):
         rospy.init_node('planner_server', log_level=rospy.DEBUG)
-        self.s = rospy.Service('path_planner', path, self.handle_add_two_ints)
         self.cSpacePub = rospy.Publisher('/resulting_path', GridCells, queue_size=10)
         self.start_end_pntPub = rospy.Publisher('/start_end_pnt', GridCells, queue_size=10)
 
@@ -148,6 +170,9 @@ class algo_service:
 
         self.rotated_array=rotated_array
         self.grid=grid
+        self.arr=arr
+
+        self.s = rospy.Service('path_planner', path, self.handle_add_two_ints)
 if __name__ == "__main__":
     service=algo_service()
     rospy.loginfo("planner service ready")

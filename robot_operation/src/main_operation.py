@@ -284,6 +284,8 @@ class move_robot():
         client.wait_for_server()
         
         for i in self.path:
+            if rospy.is_shutdown():
+                break
             old_point=self.amcl_pose
             angle_to_next_goal = math.atan2(i[1] - old_point[1], i[0] - old_point[0])
             quat_points=self.get_quaternion_from_euler(0,0,angle_to_next_goal)
