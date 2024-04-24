@@ -33,6 +33,7 @@
         <param name="odom_alpha2" value="0.05"/>
         <param name="odom_alpha3" value="0.05"/>
         <param name="odom_alpha4" value="0.05"/>
+        <param name="transform_tolerance" value="1"/>
     </node>
 
     <!-- depth camera to 2d to see people coming -->
@@ -54,13 +55,13 @@
         <param name="use_inf" value="true"/>
     </node>
     <node name="rviz_config" pkg="rviz" type="rviz" args="-d $(find order_handler)/config/basic_config.rviz"/>
-    <!--<node name="rviz_config" pkg="rviz" type="rviz" args="-d $(find order_handler)/config/robot_config.rviz"/>
 
     <arg name="odom_topic" default="odom" />
     <arg name="laser_topic" default="scan3" />
     <arg name="base_frame_id" default="base_chassis"/>
     <arg name="odom_frame_id" default="odom"/>
     <arg name="global_frame_id" default="map"/>
+    <arg name="goal_topic" default="new_goal"/>
 
     <node name="Base_move" pkg="move_base" type="move_base"  output="screen">
         <param name="controller_frequency" value="10.0"/>
@@ -74,10 +75,11 @@
         <param name="global_costmap/robot_base_frame" value="$(arg base_frame_id)"/>
         <param name="local_costmap/global_frame" value="$(arg odom_frame_id)"/>
         <param name="local_costmap/robot_base_frame" value="$(arg base_frame_id)"/>
+        <param name="/move_base/goal" value="$(arg goal_topic)"/>
 
         <remap from="odom" to="$(arg odom_topic)"/>
         <remap from="scan" to="$(arg laser_topic)"/>
-    </node>-->
+    </node> 
 
     <!-- Navigation Node -->
     <!-- <arg name="odom_frame_id" default="odom"/>

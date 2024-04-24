@@ -112,6 +112,7 @@ class Algorithms:
 
             for n in neighbors:
                 # maybe include boundary check?
+                print(n)
                 print(self.occupancy_grid[n[0]][n[1]])        # to check occupancy values
                 if self.occupancy_grid[n[0]][n[1]] == 0:                                             # 1 is obstacle, 0 is free space, -1 undefined
                     # cost = self.euclid_distance(n,self.goal) + self.euclid_distance(current_coord,n)     # astar equation with goal consideration

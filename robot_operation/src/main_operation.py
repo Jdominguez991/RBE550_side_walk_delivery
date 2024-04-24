@@ -8,12 +8,18 @@ from pathlib import Path
 from yaml.loader import SafeLoader
 import yaml
 from threading import Thread
-from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Vector3
+from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Vector3, PoseStamped, PoseWithCovarianceStamped
 from std_srvs.srv import SetBool,SetBoolResponse,SetBoolRequest, Trigger, TriggerResponse
 import time
 import move_base.move_base as move_base
 import re
 import sys
+import actionlib
+from actionlib_msgs.msg import GoalStatusArray
+from move_base_msgs.msg import MoveBaseGoal, MoveBaseActionFeedback,MoveBaseAction
+from motion_controller.srv import path, pathRequest
+import math
+import numpy as np
 
 class SingletonClass(object):
     """A class to define a class to be singleton
@@ -209,9 +215,113 @@ class current_order_status(SingletonClass):
         """
         return self.current_robot_state.current_state.id
 
+class move_robot():
+    def __init__(self):
+        # self.pub = rospy.Publisher('/move_base/feedback', MoveBaseActionFeedback, queue_size=10)
+        rospy.Subscriber("/move_base/feedback", MoveBaseActionFeedback, self.grab_pose)
+        self.pose_subscriber = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.update_amcl_pose)
+        rospy.sleep(10)
+        # send_new_goal = actionlib.SimpleActionClient('move_base/goal', MoveBaseActionGoal)
+        # current_pose = actionlib.SimpleActionClient('move_base/status', GoalStatusArray)
+
+        # send_new_goal.wait_for_server()
+
+    def make_service_request(self,start_point, end_point):
+        rospy.wait_for_service('path_planner')  # Wait for the service to become available
+        try:
+            service_client = rospy.ServiceProxy('path_planner', path)
+            request = pathRequest(start_point=start_point, end_point=end_point)
+            response = service_client(request)
+            resulting_path=[]
+            for item in response.path:
+                resulting_path.append(item.location)
+            resulting_path.append(end_point)
+            self.path=resulting_path
+        except rospy.ServiceException as e:
+            rospy.logerr("Service call failed: %s", e)
+            return None
+        
+    def update_amcl_pose(self, data):
+        x_pos=data.pose.pose.position.x
+        y_pos=data.pose.pose.position.y
+        self.amcl_pose = [x_pos, y_pos]
+
+    def grab_pose(self,data):
+        if data.status.status==3:
+            self.goal_reached=True
+        else:
+            self.goal_reached=False
+        curr_x=data.feedback.base_position.pose.position.x
+        curr_y=data.feedback.base_position.pose.position.y
+        self.move_base_pose=[curr_x,curr_y]
+    # def send_move_base_goal(self,pnt):
+
+    def get_quaternion_from_euler(self,roll, pitch, yaw):
+        """
+        Convert an Euler angle to a quaternion.
+        
+        Input
+            :param roll: The roll (rotation around x-axis) angle in radians.
+            :param pitch: The pitch (rotation around y-axis) angle in radians.
+            :param yaw: The yaw (rotation around z-axis) angle in radians.
+        
+        Output
+            :return qx, qy, qz, qw: The orientation in quaternion [x,y,z,w] format
+        """
+        qx = np.sin(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) - np.cos(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
+        qy = np.cos(roll/2) * np.sin(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.cos(pitch/2) * np.sin(yaw/2)
+        qz = np.cos(roll/2) * np.cos(pitch/2) * np.sin(yaw/2) - np.sin(roll/2) * np.sin(pitch/2) * np.cos(yaw/2)
+        qw = np.cos(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
+        
+        return [qx, qy, qz, qw]
+
+
+    def move_robot(self, goal):
+        # Create an action client called "move_base" with action definition file "MoveBaseAction"
+        client = actionlib.SimpleActionClient('move_base',MoveBaseAction)
+        self.make_service_request(self.amcl_pose, goal)
+         # Waits until the action server has started up and started listening for goals.
+        client.wait_for_server()
+        
+        for i in self.path:
+            old_point=self.amcl_pose
+            angle_to_next_goal = math.atan2(i[1] - old_point[1], i[0] - old_point[0])
+            quat_points=self.get_quaternion_from_euler(0,0,angle_to_next_goal)
+            # Creates a new goal with the MoveBaseGoal constructor
+            goal = MoveBaseGoal()
+            goal.target_pose.header.frame_id = "map"
+            goal.target_pose.header.stamp = rospy.Time.now()
+            # Move 0.5 meters forward along the x axis of the "map" coordinate frame 
+            goal.target_pose.pose.position.x = i[0]
+            goal.target_pose.pose.position.y = i[1]
+            # No rotation of the mobile base frame w.r.t. map frame
+            goal.target_pose.pose.orientation.x = quat_points[0]
+            goal.target_pose.pose.orientation.y = quat_points[1]
+            goal.target_pose.pose.orientation.z = quat_points[2]
+            goal.target_pose.pose.orientation.w = quat_points[3]
+
+        # Sends the goal to the action server.
+            client.send_goal(goal)
+            rospy.loginfo(i)
+
+
+    # Waits for the server to finish performing the action.
+            wait = client.wait_for_result()
+
+        # If the result doesn't arrive, assume the Server is not available
+        if not wait:
+            rospy.logerr("Action server not available!")
+            rospy.signal_shutdown("Action server not available!")
+        else:
+            # Result of executing the action
+            # self
+            rospy.loginfo("finished")
+    # def go_pnt(self,end_goal):
+
+
 class ros_class:
     order_info=current_order_status()
-
+    mv_rbt=move_robot()
     def received_order(self,data):
         """function for when the order service gets called, 
         This is used to grab the msg data and decode it into the order status class
@@ -255,7 +365,7 @@ class ros_class:
                 desired_goal=self.order_info.current_goal()
                 rospy.loginfo(desired_goal)
                 #------------------move_to_goal------------------------
-                
+                self.mv_rbt.move_robot(desired_goal)
                 
                 self.order_info.new_point()
                 #
@@ -271,9 +381,14 @@ class ros_class:
 ########################################################################################
 if __name__ == '__main__':
     rospy.init_node("robot_main", log_level=rospy.INFO)
-    item=ros_class()
-    rospy.Timer(rospy.Duration(.1), item.keep_sending_status)
-    item.main_code()
+    item=move_robot()
+    item.move_robot([23,-5])
+    rospy.spin()
+    # item.grab_pose()
+
+    # item=ros_class()
+    # rospy.Timer(rospy.Duration(.1), item.keep_sending_status)
+    # item.main_code()
 
 
 
