@@ -8,11 +8,13 @@ from nav_msgs.msg import OccupancyGrid, Path
 from geometry_msgs.msg import PoseStamped
 from collections import deque
 import queue
+from geometry_msgs.msg import Point, Pose, PoseStamped, PoseWithCovarianceStamped, Quaternion
+from nav_msgs.msg import GridCells
 # obstacle interpreter functions
 
 
 class Algorithms:
-    def __init__(self, start, goal, width, height, grid, rand_area, step_size,expand_dis=0.5, goal_sample_rate=20, max_iter=2000):
+    def __init__(self, start, goal, width, height, grid, rand_area, step_size,grid_size,expand_dis=0.5, goal_sample_rate=20, max_iter=2000):
         self.path = {}  # path that will be appended to, dictionary of {'algorithm type': path}
         self.start = start
         self.start[0]+=1000
@@ -30,6 +32,7 @@ class Algorithms:
         self.goal_sample_rate = goal_sample_rate
         self.max_iter = max_iter
         self.node_list = [self.start]
+        self.grid=grid_size
 
         # print(len(self.occupancy_grid))
         self.grid_width = width
@@ -72,26 +75,44 @@ class Algorithms:
     def a_star(self):
         # self.path['A_star'] = [self.start, self.goal]  # store the results of A star search into the dictionary
         # return
+        path_debug = rospy.Publisher('debug_pub',GridCells,queue_size=10)
         priority_queue = [(0, self.start)]
         visited = []
         path_tracker = []
         start_time = time.time()
         count = 0                                       # iteration counter for limit setting
         checkpoint = self.checkpoint_list.get()           # set first checkpoint
+        start_end_pnt=[]
         while priority_queue:
             #rospy.logdebug(f"The current priority queue {priority_queue}")                              # is you set ROS to debug, then it prints
             current_distance, current_coord = heapq.heappop(priority_queue)
-            path_tracker.append(current_coord)
-            print(f'This is current position: {current_coord}')
+            print(f'This is current position: [{(current_coord[0]-1000)*.05+.025},{(current_coord[1]-1000)*.05+.025}] ')
             if current_coord in visited:
                 continue
+
+            path_tracker.append(current_coord)
+
+            highlight=Point()
+            highlight.x=(current_coord[0]-1000)*.05+.025         # translate from grid space coordinate to world space coordinate
+            highlight.y=(current_coord[1]-1000)*.05+.025
+            highlight.z=0
+            start_end_pnt.append(highlight)
+
+            grid_cells_msg = GridCells()
+            grid_cells_msg.cell_width = self.grid[3]
+            grid_cells_msg.cell_height = self.grid[3]
+            grid_cells_msg.cells = start_end_pnt
+            grid_cells_msg.header.frame_id = "map"
+            path_debug.publish(grid_cells_msg)
+            # rospy.sleep(.2)
+
             # visited.add(current_coord)
             visited.append(current_coord)
             # if current_coord == self.goal:
             #     print('A star goal reached')
             #     break
 
-            if self.euclid_distance(current_coord,self.goal) <= 10:            # less exact target for goal
+            if self.euclid_distance(current_coord,self.goal) <= self.step_size+5:            # less exact target for goal
                 print('A star goal reached')
                 break
             neighbors = self.find_neighbors(current_coord)
@@ -99,20 +120,27 @@ class Algorithms:
             # condition to find shorter route without using queues
             # first condition checks if start and goal have same node, if so then remove all from queue and just find goal
             queue_list = list(self.checkpoint_list.queue)
-            if len(queue_list) >=2:
-                if queue_list[0] == queue_list[1]:
-                    first = self.checkpoint_list.get()
-                    second = self.checkpoint_list.get()
-                    checkpoint = self.goal
+            # if len(queue_list) >=2:
+            #     if queue_list[0] == queue_list[1]:
+            #         first = self.checkpoint_list.get()
+            #         second = self.checkpoint_list.get()
+            #         checkpoint = self.goal
 
-            elif self.euclid_distance(current_coord,checkpoint) <= 10:       # if planner reaches checkpoint, pop next checkpoint 
-                checkpoint = self.checkpoint_list.get()
+            # elif self.euclid_distance(current_coord,checkpoint) <= 10:       # if planner reaches checkpoint, pop next checkpoint 
+            #     checkpoint = self.checkpoint_list.get()
             
+            if self.euclid_distance(current_coord,checkpoint) <= self.step_size+5:       # if planner reaches checkpoint, pop next checkpoint 
+                current_checkpoint=checkpoint
+                self.clear_heap(priority_queue)
+                priority_queue = [(0, current_checkpoint)]
+                visited=[]
+                checkpoint = self.checkpoint_list.get()
+                
 
 
             for n in neighbors:
-                # maybe include boundary check?
-                print(n)
+                
+                print(f"[{(n[0]-1000)*.05+.025},{(n[1]-1000)*.05+.025}]")
                 print(self.occupancy_grid[n[0]][n[1]])        # to check occupancy values
                 if self.occupancy_grid[n[0]][n[1]] == 0:                                             # 1 is obstacle, 0 is free space, -1 undefined
                     # cost = self.euclid_distance(n,self.goal) + self.euclid_distance(current_coord,n)     # astar equation with goal consideration
@@ -126,6 +154,10 @@ class Algorithms:
         self.path['A_star'] = path_tracker  # store the results of A star search into the dictionary
         # return path_tracker
 
+
+    def clear_heap(self,path):
+        while path:
+            heapq.heappop(path)
 
     def checkpoint_finder(self):
         # we have two options, either create a script that will divide the map into different square regions, the middle will serve as checkpoint
@@ -221,15 +253,16 @@ class Algorithms:
         end_node = self.min_key_finder(goal_node_costs)
         rospy.logdebug(f'This is the end node: {end_node}')
 
+        priority_queue = [(0, start_node)]
         search_queue = queue.Queue()
         search_queue.put(start_node)
         visited = set()
         path=[]
         new_path = list(path)  # Create a new path
-        # BFS search
+        # Mini A* search
         while search_queue:
-            
-            path.append(search_queue.get())
+            current_distance, current_coord = heapq.heappop(priority_queue)
+            path.append(current_coord)
             node = path[-1]
             node_tuple = tuple(node)
             if node_tuple not in visited:
@@ -238,12 +271,18 @@ class Algorithms:
 
                 # Check if this node is the end node
                 if node_tuple == end_node:
+                    path.reverse()
+                    for item in path:
+                        self.checkpoint_list.put(item)
                     return path  # Return the path if it reaches the end
 
                 # Enqueue neighbors of the current node
                 for neighbor in self.building_checkpoint_graph.get(node_tuple, ()):
                     new_path.append(neighbor)
                     search_queue.put(neighbor)
+                    cost = self.euclid_distance(neighbor,self.goal)     # a* equation with checkpoints
+                    heapq.heappush(priority_queue, (cost, neighbor))
+
         
         rospy.logfatal("jumped out of while loop error")
 
@@ -256,12 +295,6 @@ class Algorithms:
         # now implmement for the 
         
        
-    def rrt_search(self):
-
-        pass
-
-    def hybrid_aStar(self):  # ?
-        pass
 
 
 # Node for RRT

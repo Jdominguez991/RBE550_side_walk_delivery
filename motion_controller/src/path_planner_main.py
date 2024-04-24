@@ -35,36 +35,36 @@ def grab_curr_robot_pose():
     except rospy.ServiceException as e:
         print("Service call failed: %s"%e)
 
-def starting_pnt(data):
-    global start_location, given_coor
-    start_location["x"]=int(data.pose.pose.position.x/.05)
-    start_location["y"]=int(data.pose.pose.position.y/.05)
-    quaternion_angle=[data.pose.pose.orientation.x,data.pose.pose.orientation.y,data.pose.pose.orientation.z,data.pose.pose.orientation.w]
+# def starting_pnt(data):
+#     global start_location, given_coor
+#     start_location["x"]=int(data.pose.pose.position.x/.05)
+#     start_location["y"]=int(data.pose.pose.position.y/.05)
+#     quaternion_angle=[data.pose.pose.orientation.x,data.pose.pose.orientation.y,data.pose.pose.orientation.z,data.pose.pose.orientation.w]
     
-    rot = Rotation.from_quat(quaternion_angle)
-    start_location["angle"]= rot.as_euler('xyz', degrees=True)
-    # print(start_location)
-    rospy.loginfo(f"start coordinates:{start_location}")
-    given_coor[0]=1
-def end_pnt(data):
-    global start_location, given_coor
-    end_location["x"]=int(data.pose.position.x/.05)
-    end_location["y"]=int(data.pose.position.y/.05)
-    quaternion_angle=[data.pose.orientation.x,data.pose.orientation.y,data.pose.orientation.z,data.pose.orientation.w]
+#     rot = Rotation.from_quat(quaternion_angle)
+#     start_location["angle"]= rot.as_euler('xyz', degrees=True)
+#     # print(start_location)
+#     rospy.loginfo(f"start coordinates:{start_location}")
+#     given_coor[0]=1
+# def end_pnt(data):
+#     global start_location, given_coor
+#     end_location["x"]=int(data.pose.position.x/.05)
+#     end_location["y"]=int(data.pose.position.y/.05)
+#     quaternion_angle=[data.pose.orientation.x,data.pose.orientation.y,data.pose.orientation.z,data.pose.orientation.w]
     
-    rot = Rotation.from_quat(quaternion_angle)
-    end_location["angle"]= rot.as_euler('xyz', degrees=True)
-    rospy.loginfo(f"end coordinates:{end_location}")
-    given_coor[1]=1
+#     rot = Rotation.from_quat(quaternion_angle)
+#     end_location["angle"]= rot.as_euler('xyz', degrees=True)
+#     rospy.loginfo(f"end coordinates:{end_location}")
+#     given_coor[1]=1
     
 if __name__ == "__main__":
     
     rospy.init_node('path_planner',anonymous = True, log_level=rospy.DEBUG)
-    rospy.Subscriber('initialpose', PoseWithCovarianceStamped, starting_pnt)
-    rospy.Subscriber('move_base_simple/goal', PoseStamped, end_pnt)
+    # rospy.Subscriber('initialpose', PoseWithCovarianceStamped, starting_pnt)
+    # rospy.Subscriber('move_base_simple/goal', PoseStamped, end_pnt)
     cSpacePub = rospy.Publisher('/resulting_path', GridCells, queue_size=10)
     start_end_pntPub = rospy.Publisher('/start_end_pnt', GridCells, queue_size=10)
-
+    
     print("getting map")
     grid= algo_functions.request_map()
 
@@ -84,20 +84,20 @@ if __name__ == "__main__":
     rotated_array=numpy.rot90(arr)
     rotated_array=numpy.flip(rotated_array,0)
     
-    # convert_values=rotated_array
-    # convert_values[convert_values<0] = 0
+    convert_values=rotated_array
+    convert_values[convert_values<0] = 0
 
-    # # Taking a matrix of size 5 as the kernel 
-    # kernel = numpy.ones((5, 5), numpy.uint8)
-    # struct1 = ndimage.generate_binary_structure(2, 1)
-    # convert_values=ndimage.binary_dilation(convert_values, structure=struct1,iterations=2).astype(convert_values.dtype)
-    # # rotated_array = cv2.dilate(rotated_array, kernel, iterations=1)  
+    # Taking a matrix of size 5 as the kernel 
+    kernel = numpy.ones((5, 5), numpy.uint8)
+    struct1 = ndimage.generate_binary_structure(2, 1)
+    convert_values=ndimage.binary_dilation(convert_values, structure=struct1,iterations=2).astype(convert_values.dtype)
+    # rotated_array = cv2.dilate(rotated_array, kernel, iterations=1)  
 
-    # copy_original_map=rotated_array
-    # for iy, ix in numpy.ndindex(convert_values.shape):
-    #     if convert_values[iy,ix]==1 and not copy_original_map[iy,ix]==1:
-    #         rotated_array[iy,ix]=.7
-    #     rospy.loginfo("in for loop")
+    copy_original_map=rotated_array
+    for iy, ix in numpy.ndindex(convert_values.shape):
+        if convert_values[iy,ix]==1:
+            rotated_array[iy,ix]=1
+        # rospy.loginfo("in for loop")
 
     rate = rospy.Rate(15)
 
@@ -129,9 +129,14 @@ if __name__ == "__main__":
     # sys.exit()
 
     rate = rospy.Rate(15)
-    while(given_coor[0]==0 or given_coor[1]==0):
-        rate.sleep()
+    # while(given_coor[0]==0 or given_coor[1]==0):
+    #     rate.sleep()
 
+    start_location["x"]=int(0/.05)
+    start_location["y"]=int(0/.05)
+
+    end_location["x"]=int(23/.05)
+    end_location["y"]=int(-5/.05)
     start = [start_location["x"],start_location["y"]]                
     goal = [end_location["x"],end_location["y"]]                                   # currently arbitrary, ust change to whatever the server is asking for based on next item in the list
     
@@ -165,7 +170,7 @@ if __name__ == "__main__":
     # dimension=1984
     rand_area = [1,2]                                                              # for RRT later
     step_size = 1
-    robot_planner = algorithms.Algorithms(start,goal,dimension,dimension,list(rotated_array), rand_area,step_size)    # create path planning object
+    robot_planner = algorithms.Algorithms(start,goal,dimension,dimension,list(rotated_array), rand_area,step_size,grid)    # create path planning object
     
     # checkpoint testing
     check_order = robot_planner.checkpoint_order()
