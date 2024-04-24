@@ -114,6 +114,7 @@ class Algorithms:
 
             if self.euclid_distance(current_coord,self.goal) <= self.step_size+5:            # less exact target for goal
                 print('A star goal reached')
+                path_tracker.append(self.goal)
                 break
             neighbors = self.find_neighbors(current_coord)
             
