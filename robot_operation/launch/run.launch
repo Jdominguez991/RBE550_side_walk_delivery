@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- Send robot states to tf -->
+    <node name="world_handler" pkg="order_handler" type="world_handler.py" respawn="false" output="screen"/>
+
+    <node name="path_service" pkg="motion_controller" type="planner_service.py" respawn="false" output="screen"/>
+
+    <node name="main_operation" pkg="robot_operation" type="main_operation.py" respawn="false" output="screen"/>
+
+
+</launch>
