@@ -55,13 +55,13 @@ class algo_service:
         self.start_end_pntPub.publish(grid_cells_msg)
 
         rate = rospy.Rate(15)
-
+        
        # initialize path planning object
         dimension = len(self.arr)                                                 # occupancy grid is square
         # dimension=1984
         rand_area = [1,2]                                                              # for RRT later
         step_size = 10
-        robot_planner = algorithms.Algorithms([start_pnt[0],start_pnt[1]],[end_pnt[0],end_pnt[1]],dimension,dimension,list(self.rotated_array), rand_area,step_size)    # create path planning object
+        robot_planner = algorithms.Algorithms([start_pnt[0],start_pnt[1]],[end_pnt[0],end_pnt[1]],dimension,dimension,list(self.rotated_array), rand_area,step_size, self.grid)    # create path planning object
         
         # checkpoint testing
         check_order = robot_planner.checkpoint_order()

@@ -221,6 +221,7 @@ class move_robot():
         rospy.Subscriber("/move_base/feedback", MoveBaseActionFeedback, self.grab_pose)
         self.pose_subscriber = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.update_amcl_pose)
         rospy.sleep(10)
+        rospy.loginfo("ready to go to positions")
         # send_new_goal = actionlib.SimpleActionClient('move_base/goal', MoveBaseActionGoal)
         # current_pose = actionlib.SimpleActionClient('move_base/status', GoalStatusArray)
 
@@ -384,8 +385,8 @@ class ros_class:
 if __name__ == '__main__':
     rospy.init_node("robot_main", log_level=rospy.INFO)
     item=move_robot()
-    item.move_robot([23,-5])
-    rospy.spin()
+    item.move_robot([23,0])
+    # rospy.spin()
     # item.grab_pose()
 
     # item=ros_class()
