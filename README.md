@@ -1,5 +1,5 @@
 # RBE550_side_walk_delivery
-
+The main basis for this project like all the urdfs and general was from: https://github.com/rodriguesrenato/warehouse_robot_simulation
 ## Download Applications
 Some python applications are required in order to use the sqlite db as well as use the libraries in order to convert euler and quaternion. The following cmd should be run top to repo directory.
 ```
